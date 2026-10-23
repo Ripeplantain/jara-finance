@@ -88,9 +88,11 @@ function toolLabel(type: string): string {
     </p>
 
     <!-- Conversation -->
-    <div class="app-panel flex min-h-[32rem] flex-1 flex-col">
+    <div class="app-panel mx-auto flex min-h-[32rem] w-full max-w-5xl flex-1 flex-col overflow-hidden">
       <div v-if="messages.length === 0" class="flex flex-1 flex-col items-center justify-center gap-5 px-5 py-12 text-center">
-        <SaloMark class="size-12 text-foreground" />
+        <span class="grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <SaloAvatar class="size-11" title="Salo" />
+        </span>
         <div>
           <h2 class="text-base font-semibold">What would you like to know?</h2>
           <p class="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
@@ -131,10 +133,10 @@ function toolLabel(type: string): string {
           <template v-for="(part, index) in message.parts" :key="index">
             <div
               v-if="part.type === 'text'"
-              class="max-w-[92%] whitespace-pre-wrap px-4 py-3 text-sm leading-relaxed sm:max-w-[76%]"
+              class="max-w-[92%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm sm:max-w-[76%]"
               :class="message.role === 'user'
-                ? 'bg-primary text-primary-foreground'
-                : 'border-l-2 border-primary bg-muted/45'"
+                ? 'rounded-br-md bg-primary text-primary-foreground'
+                : 'rounded-bl-md border border-border bg-muted/55'"
             >
               {{ part.text }}
             </div>
@@ -154,17 +156,17 @@ function toolLabel(type: string): string {
         </li>
 
         <li v-if="isStreaming" class="flex items-center gap-2 text-sm text-muted-foreground">
-          <!-- Cells stamping, one after another — the app's own waiting mark. -->
+          <!-- A quiet, familiar thinking indicator. -->
           <span class="flex gap-1" aria-hidden="true">
-            <span class="size-2 animate-pulse bg-current [animation-delay:-0.3s]" />
-            <span class="size-2 animate-pulse bg-current [animation-delay:-0.15s]" />
-            <span class="size-2 animate-pulse bg-current" />
+            <span class="size-2 animate-pulse rounded-full bg-current [animation-delay:-0.3s]" />
+            <span class="size-2 animate-pulse rounded-full bg-current [animation-delay:-0.15s]" />
+            <span class="size-2 animate-pulse rounded-full bg-current" />
           </span>
           Salo is thinking
         </li>
       </ul>
       <!-- Composer -->
-      <div class="sticky bottom-20 mt-auto border-t border-border bg-card p-2 md:bottom-0 sm:p-3">
+      <div class="sticky bottom-20 mt-auto border-t border-border bg-card/95 p-3 backdrop-blur-lg md:bottom-0 sm:p-4">
       <p v-if="error" class="mb-2 text-sm text-destructive" role="alert">{{ error }}</p>
       <p v-else-if="outOfMessages" class="mb-2 text-sm text-muted-foreground">
         You have used today's messages. The allowance resets at midnight.
@@ -177,7 +179,7 @@ function toolLabel(type: string): string {
           v-model="input"
           :disabled="outOfMessages"
           placeholder="Ask about your money…"
-          class="min-h-11 border-0 bg-muted/55 shadow-none focus-visible:ring-0"
+          class="min-h-11 rounded-xl border-0 bg-muted/70 shadow-none focus-visible:ring-2"
           autocomplete="off"
         />
         <Button type="submit" size="icon" :disabled="isStreaming || outOfMessages || input.trim() === ''">

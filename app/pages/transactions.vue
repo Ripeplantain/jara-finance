@@ -192,21 +192,21 @@ const selectClass = 'field-select !w-auto'
         Could not load these transactions. Try changing the filters or refreshing.
       </p>
 
-        <div v-else-if="rows.length === 0" class="app-panel border-dashed px-6 py-12 text-center">
+        <div v-else-if="rows.length === 0" class="app-panel px-6 py-12 text-center">
           <p class="text-sm font-medium">Nothing here</p>
           <p class="mt-1 text-sm text-muted-foreground">
             No transactions match these filters in {{ listData?.period.label }}.
           </p>
         </div>
 
-        <ul v-else class="app-panel flex flex-col divide-y divide-border">
+        <ul v-else class="app-panel flex flex-col divide-y divide-border overflow-hidden">
           <li
             v-for="row in rows"
             :key="row.id"
             class="group flex min-h-16 items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/45 sm:px-4"
           >
             <span
-              class="grid size-9 shrink-0 place-items-center"
+              class="grid size-10 shrink-0 place-items-center rounded-xl"
               :class="row.type === 'income'
                 ? 'bg-income/12 text-income'
                 : row.type === 'expense'

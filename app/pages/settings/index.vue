@@ -132,10 +132,10 @@ const COLOUR_MODES = [
 
     <div class="grid items-start gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-10">
       <nav class="app-panel sticky top-6 hidden p-2 lg:block" aria-label="Settings sections">
-        <a href="#accounts" class="block px-3 py-2 text-sm font-medium hover:bg-accent">Accounts</a>
-        <a href="#profile" class="block px-3 py-2 text-sm font-medium hover:bg-accent">About you</a>
-        <a href="#appearance" class="block px-3 py-2 text-sm font-medium hover:bg-accent">Appearance</a>
-        <a href="#login" class="block px-3 py-2 text-sm font-medium hover:bg-accent">Login</a>
+        <a href="#accounts" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">Accounts</a>
+        <a href="#profile" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">About you</a>
+        <a href="#appearance" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">Appearance</a>
+        <a href="#login" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">Login</a>
       </nav>
 
       <div class="flex min-w-0 flex-col gap-6">
@@ -157,7 +157,7 @@ const COLOUR_MODES = [
         <CardContent class="flex flex-col gap-4">
           <form
             v-if="addingAccount"
-            class="flex flex-col gap-3 border border-border bg-muted/40 p-3"
+            class="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-4"
             @submit.prevent="addAccount"
           >
             <div class="flex flex-col gap-2">
@@ -339,12 +339,12 @@ const COLOUR_MODES = [
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div class="grid max-w-sm grid-cols-3 gap-1 bg-muted p-1" role="group" aria-label="Theme">
+          <div class="grid max-w-sm grid-cols-3 gap-1 rounded-xl bg-muted p-1" role="group" aria-label="Theme">
             <button
               v-for="option in COLOUR_MODES"
               :key="option.value"
               type="button"
-              class="px-2 py-1.5 text-sm font-medium transition-colors"
+              class="rounded-lg px-2 py-1.5 text-sm font-medium transition-colors"
               :class="colourMode === option.value
                 ? 'bg-background text-foreground'
                 : 'text-muted-foreground hover:text-foreground'"

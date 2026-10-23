@@ -69,7 +69,7 @@ const option = computed(() => ({
       `${params.name}<br/><strong>${formatPesewas(params.value, { currency: props.currency })}</strong> · ${params.percent}%`
   },
   /*
-    No legend. The ruled list beneath this chart already names every category
+    No legend. The list beneath this chart already names every category
     with its swatch, its share and its amount — a scrolling legend above it said
     the same thing worse, six entries at a time, and cost the section a band of
     dead space.
@@ -86,7 +86,7 @@ const option = computed(() => ({
       label: { show: false },
       labelLine: { show: false },
       // The gap between slices is the card showing through, so the ring reads
-      // as separate stamped arcs rather than one blended band.
+      // as separate clear arcs rather than one blended band.
       itemStyle: { borderWidth: 2, borderColor: cardColour.value },
       data: props.categories.map(category => ({
         name: category.name,

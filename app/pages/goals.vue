@@ -213,8 +213,8 @@ const selectClass = 'field-select'
       <Button @click="creating = true">Create a goal</Button>
     </EmptyState>
 
-    <div v-else-if="goals.length" class="app-panel">
-      <article v-for="goal in goals" :key="goal.id" class="border-b border-border last:border-b-0">
+    <div v-else-if="goals.length" class="grid gap-5">
+      <article v-for="goal in goals" :key="goal.id" class="app-panel overflow-hidden bg-gradient-to-br from-card to-saving/5">
         <div class="p-4 pb-3 sm:p-5 sm:pb-3">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">

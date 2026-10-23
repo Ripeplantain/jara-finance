@@ -3,162 +3,92 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
-  Jara design tokens — the susu card.
-
-  The world is the susu collector's tally card: pale ruled stock, a deep
-  susu-green shell carrying navigation, and stamp ink for money that has
-  already been promised. Three layers live here:
-
-  1. shadcn-vue's standard surface/text/border variables, tuned to that stock.
-  2. Finance-semantic variables (income/expense/warning/saving). Money direction
-     is meaning, not decoration, so it gets named tokens rather than ad-hoc
-     utilities. Never express income/expense with a raw colour class.
-  3. Shell variables, for the one surface that is not stock — the nav rail and
-     the mobile tab bar.
-
-  Light is the default because the use scene decides it: someone standing at a
-  stall in hard equatorial sun, screen fighting the glare. Dark is the same card
-  read at 9pm on a sofa, so the stock darkens and the shell recedes behind it.
-*/
-
+/* Jara's Calm Signal system: cool cloud, crisp surfaces, confident cobalt. */
 :root {
-  /* Stamped cells and ruled stock are square. Corners are carved, not rounded. */
-  --radius: 0.125rem;
-
-  --background: oklch(0.945 0.014 122);
-  --foreground: oklch(0.225 0.014 155);
-
-  --card: oklch(0.985 0.008 120);
-  --card-foreground: oklch(0.225 0.014 155);
-
-  --popover: oklch(0.985 0.008 120);
-  --popover-foreground: oklch(0.225 0.014 155);
-
-  --primary: oklch(0.42 0.065 168);
-  --primary-foreground: oklch(0.965 0.012 120);
-
-  --secondary: oklch(0.915 0.016 125);
-  --secondary-foreground: oklch(0.3 0.03 165);
-
-  --muted: oklch(0.925 0.014 125);
-  --muted-foreground: oklch(0.455 0.016 150);
-
-  --accent: oklch(0.895 0.028 140);
-  --accent-foreground: oklch(0.28 0.032 165);
-
-  --destructive: oklch(0.45 0.14 25);
-  --destructive-foreground: oklch(0.975 0.01 25);
-
-  --border: oklch(0.855 0.016 125);
-  --input: oklch(0.8 0.018 125);
-  --ring: oklch(0.42 0.075 168);
-
-  /* The shell: the one surface that is not stock. */
-  --shell: oklch(0.315 0.038 168);
-  --shell-foreground: oklch(0.95 0.012 120);
-  --shell-muted: oklch(0.72 0.025 135);
-  --shell-border: oklch(0.38 0.035 168);
-
-  /*
-    Finance semantics.
-
-    `expense` is the collector's stamp ink, which is why money out and a struck
-    cell are the same colour — spent money and promised money are both gone.
-    `saving` is kept distinct from `income` because a goal contribution is not
-    earnings, and the tally field has to show the two side by side.
-  */
-  --income: oklch(0.46 0.1 158);
-  --income-foreground: oklch(0.975 0.01 158);
-  --expense: oklch(0.45 0.14 25);
-  --expense-foreground: oklch(0.975 0.01 25);
-  /* Dark enough to clear 4.5:1 on stock at body size, not just at display size:
-     the remainder figure beside a "Tight" verdict is set in this colour. */
-  --warning: oklch(0.52 0.105 72);
-  --warning-foreground: oklch(0.985 0.01 70);
-  --saving: oklch(0.44 0.085 258);
-  --saving-foreground: oklch(0.975 0.01 258);
-
-  /* Categorical chart ramp — the world's own inks, distinguishable in both
-     themes and for common colour-vision deficiency. */
-  --chart-1: oklch(0.45 0.09 168);
-  --chart-2: oklch(0.6 0.115 70);
-  --chart-3: oklch(0.47 0.125 25);
-  --chart-4: oklch(0.46 0.08 258);
-  --chart-5: oklch(0.68 0.085 145);
-  --chart-6: oklch(0.5 0.075 320);
+  --radius: 0.75rem;
+  --background: oklch(0.975 0.006 255);
+  --foreground: oklch(0.21 0.035 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.035 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.035 265);
+  --primary: oklch(0.52 0.205 265);
+  --primary-foreground: oklch(0.99 0.004 255);
+  --secondary: oklch(0.945 0.018 258);
+  --secondary-foreground: oklch(0.28 0.06 265);
+  --muted: oklch(0.955 0.011 255);
+  --muted-foreground: oklch(0.5 0.025 260);
+  --accent: oklch(0.925 0.035 225);
+  --accent-foreground: oklch(0.25 0.055 260);
+  --destructive: oklch(0.57 0.2 25);
+  --destructive-foreground: oklch(0.985 0.006 25);
+  --border: oklch(0.9 0.012 255);
+  --input: oklch(0.855 0.018 255);
+  --ring: oklch(0.58 0.17 264);
+  --income: oklch(0.5 0.145 155);
+  --income-foreground: oklch(0.985 0.006 155);
+  --expense: oklch(0.57 0.2 25);
+  --expense-foreground: oklch(0.985 0.006 25);
+  --warning: oklch(0.51 0.14 75);
+  --warning-foreground: oklch(0.985 0.006 75);
+  --saving: oklch(0.55 0.18 300);
+  --saving-foreground: oklch(0.985 0.006 300);
+  --aqua: oklch(0.72 0.12 205);
+  --chart-1: oklch(0.52 0.18 265);
+  --chart-2: oklch(0.55 0.14 155);
+  --chart-3: oklch(0.64 0.14 70);
+  --chart-4: oklch(0.58 0.17 300);
+  --chart-5: oklch(0.62 0.13 210);
+  --chart-6: oklch(0.57 0.17 25);
+  --surface-shadow: 0 1px 2px oklch(0.21 0.035 265 / 0.04), 0 10px 30px oklch(0.21 0.035 265 / 0.055);
+  --surface-shadow-hover: 0 2px 4px oklch(0.21 0.035 265 / 0.05), 0 16px 36px oklch(0.21 0.035 265 / 0.08);
 }
 
-/*
-  Dark is the same susu card read at 9pm under a lamp, not a different product.
-
-  Two things it must not do. It must not fall to near-black with saturated
-  accents floating on it — that is the register this audience reads as a scam.
-  And the shell must stay the one surface that is not stock: in light the rail
-  is darker than the page, so in dark it goes the other way and becomes the
-  *lightest*, greenest band. Inverting the direction keeps the meaning, where
-  keeping the direction lost it — a rail darker than an already-dark page is
-  just a hole.
-*/
 .dark {
-  --background: oklch(0.235 0.016 168);
-  --foreground: oklch(0.95 0.012 120);
-
-  --card: oklch(0.285 0.018 168);
-  --card-foreground: oklch(0.95 0.012 120);
-
-  --popover: oklch(0.285 0.018 168);
-  --popover-foreground: oklch(0.95 0.012 120);
-
-  --primary: oklch(0.74 0.095 165);
-  --primary-foreground: oklch(0.2 0.025 168);
-
-  --secondary: oklch(0.33 0.022 168);
-  --secondary-foreground: oklch(0.94 0.012 120);
-
-  --muted: oklch(0.305 0.02 168);
-  --muted-foreground: oklch(0.76 0.018 130);
-
-  --accent: oklch(0.37 0.03 165);
-  --accent-foreground: oklch(0.95 0.012 120);
-
-  --destructive: oklch(0.73 0.15 25);
-  --destructive-foreground: oklch(0.2 0.02 25);
-
-  --border: oklch(0.42 0.022 168);
-  --input: oklch(0.5 0.025 168);
-  --ring: oklch(0.74 0.095 165);
-
-  --shell: oklch(0.36 0.05 168);
-  --shell-foreground: oklch(0.97 0.01 120);
-  --shell-muted: oklch(0.8 0.03 150);
-  --shell-border: oklch(0.46 0.045 168);
-
-  --income: oklch(0.78 0.13 158);
-  --income-foreground: oklch(0.2 0.02 158);
-  --expense: oklch(0.73 0.15 25);
-  --expense-foreground: oklch(0.2 0.02 25);
-  --warning: oklch(0.82 0.13 72);
-  --warning-foreground: oklch(0.22 0.03 72);
-  --saving: oklch(0.72 0.11 258);
-  --saving-foreground: oklch(0.2 0.02 258);
-
-  --chart-1: oklch(0.7 0.1 165);
-  --chart-2: oklch(0.775 0.13 72);
-  --chart-3: oklch(0.69 0.145 25);
-  --chart-4: oklch(0.68 0.1 258);
-  --chart-5: oklch(0.86 0.075 145);
-  --chart-6: oklch(0.7 0.09 320);
+  --background: oklch(0.16 0.025 265);
+  --foreground: oklch(0.96 0.008 255);
+  --card: oklch(0.205 0.03 265);
+  --card-foreground: oklch(0.96 0.008 255);
+  --popover: oklch(0.225 0.032 265);
+  --popover-foreground: oklch(0.96 0.008 255);
+  --primary: oklch(0.69 0.17 263);
+  --primary-foreground: oklch(0.16 0.025 265);
+  --secondary: oklch(0.255 0.038 265);
+  --secondary-foreground: oklch(0.94 0.01 255);
+  --muted: oklch(0.235 0.028 265);
+  --muted-foreground: oklch(0.72 0.025 255);
+  --accent: oklch(0.285 0.055 235);
+  --accent-foreground: oklch(0.95 0.01 255);
+  --destructive: oklch(0.72 0.16 25);
+  --destructive-foreground: oklch(0.17 0.02 25);
+  --border: oklch(0.31 0.03 265);
+  --input: oklch(0.39 0.035 265);
+  --ring: oklch(0.69 0.17 263);
+  --income: oklch(0.74 0.13 155);
+  --income-foreground: oklch(0.17 0.02 155);
+  --expense: oklch(0.72 0.16 25);
+  --expense-foreground: oklch(0.17 0.02 25);
+  --warning: oklch(0.78 0.13 78);
+  --warning-foreground: oklch(0.18 0.025 78);
+  --saving: oklch(0.73 0.14 300);
+  --saving-foreground: oklch(0.17 0.02 300);
+  --aqua: oklch(0.76 0.12 205);
+  --chart-1: oklch(0.69 0.17 263);
+  --chart-2: oklch(0.74 0.13 155);
+  --chart-3: oklch(0.78 0.13 78);
+  --chart-4: oklch(0.73 0.14 300);
+  --chart-5: oklch(0.72 0.12 210);
+  --chart-6: oklch(0.72 0.16 25);
+  --surface-shadow: 0 1px 2px oklch(0.05 0.02 265 / 0.28), 0 12px 32px oklch(0.05 0.02 265 / 0.2);
+  --surface-shadow-hover: 0 2px 4px oklch(0.05 0.02 265 / 0.34), 0 18px 40px oklch(0.05 0.02 265 / 0.26);
 }
 
 @theme inline {
-  --radius-sm: var(--radius);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) * 2);
-  --radius-xl: calc(var(--radius) * 2);
-
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.375rem);
   --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -178,12 +108,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-
-  --color-shell: var(--shell);
-  --color-shell-foreground: var(--shell-foreground);
-  --color-shell-muted: var(--shell-muted);
-  --color-shell-border: var(--shell-border);
-
   --color-income: var(--income);
   --color-income-foreground: var(--income-foreground);
   --color-expense: var(--expense);
@@ -192,7 +116,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-saving: var(--saving);
   --color-saving-foreground: var(--saving-foreground);
-
+  --color-aqua: var(--aqua);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -202,182 +126,62 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
+  * { @apply border-border outline-ring/50; }
+  html { min-width: 320px; }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply min-h-dvh bg-background font-sans text-foreground;
     font-feature-settings: 'ss01';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-
-  html {
-    min-width: 320px;
-  }
-
-  body {
-    min-height: 100dvh;
-  }
-
-  /*
-    The surfaces we did not draw still have to carry the design. Selection,
-    caret, scrollbar and underline offset all ship with browser defaults that
-    belong to no design system.
-  */
-  ::selection {
-    background: var(--warning);
-    color: var(--warning-foreground);
-  }
-
-  :root {
-    --caret: var(--income);
-    accent-color: var(--primary);
-    scrollbar-color: var(--border) transparent;
-  }
-
-  input,
-  textarea {
-    caret-color: var(--caret);
-  }
-
-  a {
-    text-underline-offset: 0.2em;
-    text-decoration-thickness: from-font;
-  }
-
-  ::-webkit-scrollbar {
-    width: 11px;
-    height: 11px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border: 3px solid var(--background);
-    border-radius: 99px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
-  }
-
-  /* Money figures must never reflow as digits change. */
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-@layer utilities {
-  /*
-    Ruled stock. The horizontal rules of a tally card, drawn as a background so
-    they sit under content rather than between elements, at the 32px rhythm the
-    row height is built on.
-  */
-  .stock-ruled {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0 31px,
-      color-mix(in oklab, var(--border) 42%, transparent) 31px 32px
-    );
-  }
-
-  /*
-    A cell of the tally field, hatched. "Budgeted but not yet spent" is money
-    that is committed without having left, so its cell is neither struck nor
-    open.
-
-    Hatched in the shell green rather than in ochre. Ochre is a *state* colour
-    here — caution — and it keeps that one job across the app: the `tight`
-    verdict, a budget running ahead of its month, a warning insight. What it no
-    longer does is double as a category mark inside the tally, where it was
-    saying "this cell is budgeted" and "this answer is tight" on one screen.
-  */
-  .cell-hatched {
-    background-image: repeating-linear-gradient(
-      135deg,
-      var(--primary) 0 2px,
-      transparent 2px 5px
-    );
-  }
-
+  ::selection { background: color-mix(in oklab, var(--primary) 24%, transparent); color: var(--foreground); }
+  :root { accent-color: var(--primary); scrollbar-color: var(--border) transparent; }
+  input, textarea { caret-color: var(--primary); }
+  a { text-underline-offset: 0.2em; text-decoration-thickness: from-font; }
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border: 3px solid var(--background); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+  .tabular { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
-  /*
-    The application frame is deliberately restrained: modernity comes from
-    hierarchy, density and alignment rather than floating cards. These shared
-    surfaces keep every route on the same visual grammar.
-  */
   .app-panel {
-    @apply border border-border bg-card;
+    @apply rounded-xl border border-border bg-card;
+    box-shadow: var(--surface-shadow);
   }
-
-  .app-panel-muted {
-    @apply border border-border bg-muted/45;
-  }
-
+  .app-panel-muted { @apply rounded-xl border border-border bg-muted/55; }
   .app-toolbar {
-    @apply flex flex-wrap items-center gap-2 border-y border-border bg-card/80 px-3 py-3;
+    @apply flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3;
+    box-shadow: var(--surface-shadow);
   }
-
-  .section-kicker {
-    @apply text-xs font-medium text-muted-foreground;
-  }
-
-  .ledger-row {
-    @apply border-b border-border px-4 py-3 last:border-b-0;
-  }
-
+  .section-kicker { @apply text-xs font-semibold uppercase tracking-[0.12em] text-primary; }
+  .ledger-row { @apply border-b border-border px-4 py-3 last:border-b-0; }
   .field-select {
-    @apply h-11 w-full border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:h-9;
+    @apply h-11 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 md:h-9;
   }
-
-  .status-strip {
-    @apply border border-border bg-card px-4 py-3 text-sm;
-  }
-
-  .status-strip-error {
-    @apply border-expense bg-expense/10 text-foreground;
-  }
-
-  .skeleton-line {
-    @apply animate-pulse bg-muted motion-reduce:animate-none;
+  .status-strip { @apply rounded-lg border border-border bg-card px-4 py-3 text-sm; }
+  .status-strip-error { @apply border-expense/40 bg-expense/10 text-foreground; }
+  .skeleton-line { @apply animate-pulse rounded-md bg-muted motion-reduce:animate-none; }
+  .metric-surface {
+    background-image: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--saving) 78%, var(--primary)));
+    color: var(--primary-foreground);
+    box-shadow: 0 18px 46px color-mix(in oklab, var(--primary) 22%, transparent);
   }
 }
 
 @media (pointer: coarse) {
-  [data-slot='button'],
-  [data-slot='input'],
-  [data-slot='select-trigger'],
-  select,
-  button:not([data-slot]) {
-    min-height: 44px;
-  }
+  [data-slot='button'], [data-slot='input'], [data-slot='select-trigger'], select, button:not([data-slot]) { min-height: 44px; }
 }
 
-/*
-  Nothing in this world floats on a shadow — it is ink on stock.
-
-  shadcn-vue bakes `shadow-sm` / `shadow-xs` into the vendored primitives, and
-  `app/components/ui/` is regenerated by the CLI, so it must not be hand-edited.
-  This sits outside every cascade layer on purpose: un-layered rules win over
-  layered ones, so it beats the utility without an `!important` and without a
-  `shadow-none` repeated at seventy call sites.
-*/
-[data-slot='card'],
-[data-slot='input'],
-[data-slot='button'],
-[data-slot='select-trigger'] {
-  box-shadow: none;
+/* Vendored primitives are themed here rather than edited in place. */
+[data-slot='card'] { border-radius: calc(var(--radius) + 0.375rem); box-shadow: var(--surface-shadow); }
+[data-slot='input'], [data-slot='select-trigger'] { border-radius: calc(var(--radius) - 0.125rem); background: var(--card); }
+[data-slot='button'] {
+  border-radius: calc(var(--radius) - 0.125rem);
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 160ms;
 }
-
-/* Same reason: the vendored badge hardcodes `rounded-full`, and a pill is the
-   one shape this world does not have. */
-[data-slot='badge'] {
-  border-radius: var(--radius);
-}
+[data-slot='button']:active:not(:disabled) { transform: scale(0.98); }
+[data-slot='badge'] { border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) { [data-slot='button']:active:not(:disabled) { transform: none; } }

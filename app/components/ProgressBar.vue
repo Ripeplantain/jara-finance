@@ -7,7 +7,7 @@
  * re-derives its own state is a second source of truth waiting to disagree
  * with the number printed beside it.
  *
- * Square, ruled and flat: a filled cell on a card, not a pill.
+ * The rounded track stays quiet so pace and state carry the meaning.
  */
 const props = withDefaults(
   defineProps<{
@@ -36,9 +36,9 @@ const barClass = computed(() => {
 </script>
 
 <template>
-  <div class="relative h-3 w-full border border-input bg-card">
+  <div class="relative h-2.5 w-full overflow-visible rounded-full bg-muted ring-1 ring-inset ring-border">
     <div
-      class="h-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+      class="h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
       role="progressbar"
       :class="barClass"
       :style="{ width: `${percent}%` }"
@@ -54,7 +54,7 @@ const barClass = computed(() => {
     -->
     <span
       v-if="pacePercent !== undefined"
-      class="absolute -inset-y-1 w-0.5 bg-foreground"
+      class="absolute -inset-y-1 w-0.5 rounded-full bg-foreground"
       :style="{ left: `calc(${Math.min(Math.max(pacePercent, 0), 100)}% - 1px)` }"
       aria-hidden="true"
     />

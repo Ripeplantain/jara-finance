@@ -68,8 +68,8 @@ export default defineNuxtConfig({
           content:
             'Jara Finance is an AI-powered personal finance coach. Track income and expenses, build budgets, hit savings goals, and know what you can afford.'
         },
-        // Matches --shell, so the phone's status bar belongs to the app shell.
-        { name: 'theme-color', content: '#1f3b34' }
+        // Matches the ultramarine brand surface used by the Jara mark.
+        { name: 'theme-color', content: '#4f46e5' }
       ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },

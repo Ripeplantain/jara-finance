@@ -16,7 +16,7 @@ const props = withDefaults(
     /**
      * Colour by direction without forcing a sign. `warning` and `saving` are
      * not directions — they mark money that is committed rather than moved, and
-     * exist so the tally field and the figures beside it carry one colour
+     * exist so the funds map and the figures beside it carry one colour
      * language.
      */
     tone?: 'auto' | 'income' | 'expense' | 'neutral' | 'warning' | 'saving'

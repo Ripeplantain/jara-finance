@@ -108,7 +108,7 @@ onActivated(() => {
     <div v-else-if="dashboard" class="flex flex-col gap-9">
       <div
         v-if="!hasEarnedOrSpent"
-        class="flex flex-wrap items-center justify-between gap-3 border border-dashed border-input bg-card px-4 py-3.5"
+        class="app-panel flex flex-wrap items-center justify-between gap-3 p-4"
       >
         <div>
           <p class="text-sm font-medium">Record some income and expenses</p>
@@ -122,22 +122,17 @@ onActivated(() => {
         </Button>
       </div>
 
-      <!--
-        The headroom answer leads, ahead of the balance — the balance is the
-        figure that misleads and available is the figure that decides. Drawn in
-        the app's own grammar, as the same field of cells the Afford screen
-        uses, so the landing screen speaks the language the product is built in.
-      -->
+      <!-- The conservative, server-provided affordability figure leads. -->
       <p v-if="headroomError" class="status-strip status-strip-error" role="alert">
         Your affordability figure is temporarily unavailable.
       </p>
 
-      <section v-if="headroom" class="app-panel p-4 sm:p-6">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b-2 border-foreground pb-2">
-          <h2 class="text-sm font-semibold">Yours to spend right now</h2>
+      <section v-if="headroom" class="app-panel overflow-hidden bg-gradient-to-br from-primary/10 via-card to-saving/10 p-5 sm:p-7">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p class="section-kicker">Safe to spend</p>
           <NuxtLink
             to="/afford"
-            class="group flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            class="group flex items-center gap-1.5 rounded-lg bg-card/70 px-3 py-2 text-sm font-semibold text-primary shadow-sm outline-none transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
           >
             Can I afford something?
             <ArrowRight
@@ -147,44 +142,17 @@ onActivated(() => {
           </NuxtLink>
         </div>
 
-        <div class="mt-5 grid gap-7 lg:grid-cols-5 lg:gap-10">
+        <div class="mt-6 grid gap-7 lg:grid-cols-5 lg:items-center lg:gap-12">
           <div class="lg:col-span-2">
             <MoneyAmount :pesewas="headroom.availablePesewas" size="xl" />
-            <p class="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            <h2 class="mt-1 text-lg font-semibold tracking-tight">Yours to spend right now</h2>
+            <p class="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
               After money promised to goals, and money budgeted for this month but
               not yet spent.
             </p>
 
-            <!-- What the cells beside this mean. Reading the field is the whole
-                 point of showing it. -->
-            <dl class="mt-5 flex flex-col gap-2 text-xs">
-              <div class="flex items-center gap-2.5">
-                <span class="size-3 shrink-0 border border-expense bg-expense" aria-hidden="true" />
-                <dt class="text-muted-foreground">Promised to goals</dt>
-                <dd class="ml-auto">
-                  <MoneyAmount :pesewas="headroom.committedSavingsPesewas" size="sm" />
-                </dd>
-              </div>
-              <div class="flex items-center gap-2.5">
-                <span class="cell-hatched size-3 shrink-0 border border-primary" aria-hidden="true" />
-                <dt class="text-muted-foreground">Budgeted, not yet spent</dt>
-                <dd class="ml-auto">
-                  <MoneyAmount :pesewas="headroom.remainingBudgetedPesewas" size="sm" />
-                </dd>
-              </div>
-              <div class="flex items-center gap-2.5">
-                <span
-                  class="size-3 shrink-0 border border-input bg-card dark:bg-background"
-                  aria-hidden="true"
-                />
-                <dt class="text-muted-foreground">Yours</dt>
-                <dd class="ml-auto">
-                  <MoneyAmount :pesewas="headroom.availablePesewas" size="sm" />
-                </dd>
-              </div>
-            </dl>
           </div>
-          <TallyField
+          <FundsMap
             class="lg:col-span-3"
             :liquid-pesewas="headroom.liquidPesewas"
             :committed-savings-pesewas="headroom.committedSavingsPesewas"
@@ -193,10 +161,10 @@ onActivated(() => {
         </div>
       </section>
 
-      <!-- The period's figures, as one ledger that adds up -->
+      <!-- The period's figures. -->
       <section>
         <SectionHeader title="Monthly position" :meta="dashboard.totals.period.label" />
-        <div class="app-panel mt-3 grid sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatTile label="Total balance" :icon="Wallet" hint="Across all your accounts">
             <MoneyAmount :pesewas="dashboard.liquidPesewas" size="lg" />
           </StatTile>
@@ -278,7 +246,7 @@ onActivated(() => {
               >
                 <span class="flex min-w-0 items-center gap-2.5">
                   <span
-                    class="size-2.5 shrink-0"
+                  class="size-2.5 shrink-0 rounded-full"
                     :style="{ background: `var(--chart-${((category.colorIndex - 1) % 6) + 1})` }"
                     aria-hidden="true"
                   />

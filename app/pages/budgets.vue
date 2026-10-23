@@ -206,7 +206,7 @@ function isAheadOfPace(percentUsed: number): boolean {
       <div v-else class="flex flex-col gap-9">
         <!-- Overall -->
         <section class="app-panel p-4 sm:p-6">
-          <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b-2 border-foreground pb-3">
+          <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
             <div>
               <MoneyAmount :pesewas="budget.totalSpentPesewas" size="xl" />
               <p class="mt-1 text-sm text-muted-foreground">
@@ -241,16 +241,16 @@ function isAheadOfPace(percentUsed: number): boolean {
         </section>
 
         <!-- Per category -->
-        <section class="app-panel p-4 sm:p-5">
-          <div class="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+        <section>
+          <div class="flex items-baseline justify-between gap-3">
             <h2 class="text-sm font-semibold">By category</h2>
             <span class="shrink-0 text-xs text-muted-foreground">Worst overspend first</span>
           </div>
-          <div class="flex flex-col">
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div
               v-for="line in budget.lines"
               :key="line.categoryId"
-              class="flex flex-col gap-2 border-b border-border py-4"
+              class="app-panel flex flex-col gap-3 p-4"
             >
               <div class="flex items-baseline justify-between gap-3">
                 <span class="truncate text-sm font-medium">{{ line.name }}</span>
@@ -285,7 +285,7 @@ function isAheadOfPace(percentUsed: number): boolean {
 
         <!-- Spending with no cap set -->
         <section v-if="budget.unbudgetedSpend.length > 0" class="app-panel p-4 sm:p-5">
-          <div class="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+          <div class="flex items-baseline justify-between gap-3">
             <h2 class="text-sm font-semibold">Not budgeted</h2>
             <span class="shrink-0 text-xs text-muted-foreground">No limit set</span>
           </div>

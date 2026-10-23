@@ -26,9 +26,9 @@ const { data, error, status } = await useFetch('/api/affordability', {
 })
 
 /*
-  The verdict is a word, not a word plus a glyph. A stock pictogram beside
-  "Tight" restates in a generic icon what the 54px word already says, and the
-  word is what makes the answer readable without colour.
+  The verdict is a word, not a word plus a glyph. A generic pictogram beside
+  "Tight" would only repeat what the display word already says; the word also
+  keeps the answer readable without colour.
 */
 const VERDICTS = {
   yes: { word: 'Yes', tone: 'text-income' },
@@ -49,8 +49,9 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
       A user opens this screen with a figure already in their head.
     -->
     <div class="max-w-2xl">
-      <p class="section-kicker">Affordability check</p>
-      <p class="mt-1 text-sm text-muted-foreground">
+      <p class="section-kicker">Decision check</p>
+      <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">Can I afford it?</h1>
+      <p class="mt-2 text-sm text-muted-foreground">
         Measure a purchase against what is genuinely free after your plans.
       </p>
     </div>
@@ -61,11 +62,11 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
         the same element. Without this the screen had no h1 at all and its
         outline started at h2.
       -->
-      <h1 class="text-sm font-semibold">
+      <h2 class="text-sm font-semibold">
         <label for="price">Can I afford</label>
-      </h1>
+      </h2>
       <div
-        class="mt-2 flex items-baseline gap-2 border-b-2 border-foreground pb-2 focus-within:border-ring"
+        class="mt-3 flex items-baseline gap-2 rounded-xl bg-muted/60 px-4 py-3 ring-1 ring-inset ring-border focus-within:ring-2 focus-within:ring-ring"
       >
         <span class="text-xl font-medium text-muted-foreground" aria-hidden="true">GH₵</span>
         <input
@@ -74,7 +75,7 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
           inputmode="decimal"
           autocomplete="off"
           placeholder="0"
-          class="w-full min-w-0 bg-transparent text-4xl font-semibold tracking-tight tabular-nums outline-none placeholder:text-muted-foreground/45 sm:text-5xl"
+          class="w-full min-w-0 bg-transparent text-4xl font-bold tracking-[-0.035em] tabular-nums outline-none placeholder:text-muted-foreground/35 sm:text-5xl"
         >
       </div>
       <!--
@@ -86,8 +87,8 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
           v-for="amount in QUICK_AMOUNTS"
           :key="amount"
           type="button"
-          class="min-h-11 border border-input px-3 py-1.5 text-sm font-medium tabular-nums transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          :class="price === String(amount) ? 'bg-foreground text-background' : ''"
+          class="min-h-11 rounded-lg border border-input bg-card px-3 py-1.5 text-sm font-medium tabular-nums transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          :class="price === String(amount) ? '!border-primary bg-primary text-primary-foreground' : ''"
           @click="price = String(amount)"
         >
           {{ amount.toLocaleString('en-GH') }}
@@ -110,8 +111,9 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
     <div v-else-if="status === 'pending'" class="grid gap-4 lg:grid-cols-5" aria-label="Working out affordability">
       <div class="app-panel p-5 lg:col-span-3">
         <div class="skeleton-line h-3 w-48" />
-        <div class="mt-5 grid grid-cols-8 gap-1">
-          <div v-for="index in 24" :key="index" class="skeleton-line aspect-square" />
+        <div class="skeleton-line mt-6 h-5 w-full rounded-full" />
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <div v-for="index in 4" :key="index" class="skeleton-line h-10 rounded-lg" />
         </div>
       </div>
       <div class="app-panel p-5 lg:col-span-2">
@@ -135,9 +137,9 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
 
     <template v-else-if="data">
       <!-- The verdict. One word, then what it leaves. -->
-      <div v-if="verdict" class="flex flex-wrap items-end gap-x-5 gap-y-2">
+      <div v-if="verdict" class="app-panel flex flex-wrap items-center gap-x-6 gap-y-3 overflow-hidden bg-gradient-to-br from-card to-muted/60 p-5 sm:p-6">
         <p
-          class="text-[2.75rem] font-bold leading-none tracking-tight sm:text-6xl"
+          class="text-[2.75rem] font-bold leading-none tracking-[-0.04em] sm:text-6xl"
           :class="verdict.tone"
         >
           {{ verdict.word }}
@@ -169,8 +171,7 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
       </div>
 
       <div class="grid gap-6 lg:grid-cols-5 lg:gap-8">
-        <!-- The signature: the subtraction, drawn -->
-        <TallyField
+        <FundsMap
           class="app-panel p-4 sm:p-5 lg:col-span-3"
           :liquid-pesewas="data.liquidPesewas"
           :committed-savings-pesewas="data.committedSavingsPesewas"
@@ -184,19 +185,19 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
           <h2 class="text-sm font-semibold">How that is worked out</h2>
           <dl class="mt-3 border-t border-border">
             <div class="flex items-center gap-3 border-b border-border py-2">
-              <span class="size-3 shrink-0 border border-input bg-card dark:bg-background" aria-hidden="true" />
+              <span class="size-2.5 shrink-0 rounded-full bg-muted-foreground" aria-hidden="true" />
               <dt class="min-w-0 flex-1 text-sm">In hand</dt>
               <dd><MoneyAmount :pesewas="data.liquidPesewas" size="sm" /></dd>
             </div>
             <div class="flex items-center gap-3 border-b border-border py-2">
-              <span class="size-3 shrink-0 border border-expense bg-expense" aria-hidden="true" />
+              <span class="size-2.5 shrink-0 rounded-full bg-saving" aria-hidden="true" />
               <dt class="min-w-0 flex-1 text-sm">Promised to goals</dt>
               <dd>
                 <MoneyAmount :pesewas="-data.committedSavingsPesewas" size="sm" signed />
               </dd>
             </div>
             <div class="flex items-center gap-3 border-b border-border py-2">
-              <span class="cell-hatched size-3 shrink-0 border border-primary" aria-hidden="true" />
+              <span class="size-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
               <dt class="min-w-0 flex-1 text-sm">Budgeted, not yet spent</dt>
               <dd>
                 <MoneyAmount :pesewas="-data.remainingBudgetedPesewas" size="sm" signed />
@@ -212,7 +213,7 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
               the row directly above the rule — the one thing this screen can
               never do.
             -->
-            <div class="flex items-baseline gap-3 border-b-2 border-foreground py-2.5">
+            <div class="flex items-baseline gap-3 rounded-lg bg-muted/60 px-3 py-3">
               <dt class="min-w-0 flex-1 text-sm font-semibold">Yours to spend</dt>
               <dd>
                 <MoneyAmount
@@ -225,11 +226,11 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
 
             <template v-if="data.pricePesewas">
               <div class="flex items-center gap-3 border-b border-border py-2">
-                <span class="size-3 shrink-0 border border-foreground bg-foreground" aria-hidden="true" />
+                <span class="size-2.5 shrink-0 rounded-full bg-foreground" aria-hidden="true" />
                 <dt class="min-w-0 flex-1 text-sm">This purchase</dt>
                 <dd><MoneyAmount :pesewas="-data.pricePesewas" size="sm" signed /></dd>
               </div>
-              <div class="flex items-baseline gap-3 border-b-2 border-foreground py-2.5">
+              <div class="mt-2 flex items-baseline gap-3 rounded-lg bg-muted/60 px-3 py-3">
                 <dt class="min-w-0 flex-1 text-sm font-semibold">
                   {{ data.verdict === 'no' ? 'Short by' : 'Leaves' }}
                 </dt>

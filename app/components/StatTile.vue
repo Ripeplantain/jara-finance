@@ -1,16 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 
-/**
- * One line of the ledger: what it is on the left, what it is worth on the right.
- *
- * Deliberately a ruled row and not a tile. A row of equal boxes each holding an
- * icon, a label and a number is the arrangement every finance app ships, and it
- * reads as four unrelated facts; under one rule they read as a column that adds
- * up, which is what they are.
- *
- * (The filename is historical — it renders a row. Renaming it is a follow-up.)
- */
+/** A compact summary surface for one server-provided figure. */
 defineProps<{
   label: string
   icon?: Component
@@ -19,15 +10,17 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex min-h-24 flex-col justify-between gap-4 border-b border-border px-4 py-4 sm:border-r sm:last:border-r-0">
+  <div class="app-panel flex min-h-32 flex-col justify-between gap-5 p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:[box-shadow:var(--surface-shadow-hover)] motion-reduce:transform-none sm:p-5">
     <div class="min-w-0">
-      <p class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <component :is="icon" v-if="icon" class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <p class="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+        <span v-if="icon" class="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+          <component :is="icon" class="size-4" aria-hidden="true" />
+        </span>
         <span class="truncate">{{ label }}</span>
       </p>
       <p v-if="hint" class="mt-0.5 text-xs leading-snug text-muted-foreground">{{ hint }}</p>
     </div>
-    <div class="shrink-0 self-end sm:self-start">
+    <div class="shrink-0">
       <slot />
     </div>
   </div>

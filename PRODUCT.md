@@ -85,11 +85,10 @@ insights, and an AI coach with eight read-only tools.
 Design work lives in `app/` and may not compute a financial figure in a
 component, nor render money except through the `MoneyAmount` contract.
 
-**Open product decision:** affordability is reachable today only through the AI
-coach and a bare `/api/affordability` endpoint. There is no screen that makes
-"can I afford this?" the primary act, and the user has named that screen the one
-that must be undeniable. Whether it becomes a route, a persistent surface on the
-dashboard, or both is undecided.
+Affordability is a first-class product surface. `/afford` makes “can I afford
+this?” the primary act, while the dashboard presents the same server-provided
+headroom as its leading figure. Both call `/api/affordability`, as does Salo's
+read-only affordability tool, so their answers cannot drift apart.
 
 ## Brand Commitments
 
@@ -102,10 +101,11 @@ dashboard, or both is undecided.
   motivator are out. The app reports; it does not lecture.
 - **Never the crypto/hype aesthetic.** Neon on near-black, glow edges and
   breathless motion read as a scam to this audience.
-- Binding visual constraints the user set directly: the brand mark is to be
-  **geometric, in the spirit of Ghanaian adinkra stamp forms**, replacing the
-  placeholder "S" tile; and the app is to carry a **real, self-hosted typeface**
-  (via `@nuxt/fonts`) rather than the browser default stack.
+- Binding visual constraints the user set directly: the brand mark is a
+  **geometric open-loop J**, distinct from Salo's coach avatar, and the app
+  carries a **real, self-hosted typeface** (via `@nuxt/fonts`) rather than the
+  browser default stack. The visual system is modern SaaS—calm cloud/navy
+  surfaces, ultramarine action, restrained cyan signal accents and soft depth.
 - Money direction is meaning, not decoration — a long-standing commitment in this
   codebase, not a style preference.
 
@@ -115,9 +115,9 @@ dashboard, or both is undecided.
 - `server/database/seed-data.ts` — 19 real system categories.
 - Working API surface across dashboard, transactions, budgets, goals, insights,
   affordability and the AI chat.
-- No logo asset of any kind exists. `public/favicon.ico` is a placeholder and the
-  in-app mark is the letter "S" in a rounded square.
-- No typeface is configured; the app renders in the browser's default sans.
+- Jara's open-loop J appears in the shell, auth layout, SVG favicon, PNG app
+  icons and ICO. Salo uses a separate conversational avatar.
+- Archivo is configured through `@nuxt/fonts` and self-hosted at build time.
 - **Absences that must not be fabricated:** there are no users, no customers, no
   testimonials, no press, no pricing, no benchmarks, no funding, no partnerships,
   no bank or telco integrations, and no launch date. Six code comments cite a PRD
