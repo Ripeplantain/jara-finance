@@ -6,15 +6,15 @@ defineProps<{
 </script>
 
 <template>
-  <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <header class="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b-2 border-foreground pb-5">
     <div class="min-w-0">
-      <h1 class="text-2xl font-semibold tracking-tight">{{ title }}</h1>
-      <p v-if="description" class="mt-1 text-sm text-muted-foreground">
+      <h1 class="text-[1.75rem] font-semibold leading-none tracking-tight sm:text-4xl">{{ title }}</h1>
+      <p v-if="description" class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
         {{ description }}
       </p>
     </div>
     <div v-if="$slots.actions" class="flex shrink-0 items-center gap-2">
       <slot name="actions" />
     </div>
-  </div>
+  </header>
 </template>

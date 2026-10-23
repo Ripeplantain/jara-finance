@@ -23,8 +23,12 @@ logs
 .env.*
 !.env.example
 
-# Machine-specific agent config (launch.json holds absolute nvm paths)
+# Local agent tooling — not pushed. Keep it out of the repo so the agent
+# workflow can change without touching project history or review.
 .claude
+.agent
+AGENTS.md
+CLAUDE.md
 
 # Test artifacts
 coverage

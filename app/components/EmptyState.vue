@@ -11,17 +11,17 @@ defineProps<{
 
 <template>
   <div
-    class="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center"
+    class="app-panel flex min-h-72 flex-col items-center justify-center border-dashed px-6 py-14 text-center"
   >
     <div
       v-if="icon"
-      class="mb-4 grid size-11 place-items-center rounded-xl bg-accent text-accent-foreground"
+      class="mb-5 grid size-12 place-items-center border border-shell-border bg-shell text-shell-foreground"
       aria-hidden="true"
     >
       <component :is="icon" class="size-5" />
     </div>
-    <h2 class="text-base font-semibold">{{ title }}</h2>
-    <p class="mt-1.5 max-w-sm text-sm text-muted-foreground">{{ description }}</p>
+    <h2 class="text-lg font-semibold tracking-tight">{{ title }}</h2>
+    <p class="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{{ description }}</p>
     <div v-if="$slots.default" class="mt-5">
       <slot />
     </div>

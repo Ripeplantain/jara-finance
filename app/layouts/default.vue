@@ -1,95 +1,126 @@
 <script setup lang="ts">
-import { ArrowLeftRight, LayoutDashboard, Settings, Sparkles, Target, Wallet } from 'lucide-vue-next'
+import {
+  ArrowLeftRight,
+  Coins,
+  LayoutDashboard,
+  Scale,
+  Settings,
+  Target
+} from 'lucide-vue-next'
+// Auto-imports cover templates; using a component as a value needs the import.
+import { SaloMark } from '#components'
 
-// PRD §6.2 — five primary sections, with Settings reachable but not competing
-// for space in the primary nav.
+/**
+ * The shell.
+ *
+ * Every surface in Jara is pale ruled stock; this is the one that is not. The
+ * rail and the tab bar are inked in `--shell`, which is what makes the stock
+ * read as a card laid on a table rather than as a page background.
+ *
+ * PRD §6.2 named five primary sections. Afford is the sixth and sits in the
+ * middle of the tab bar, because it is the question the product exists to
+ * answer and the one a user opens the app mid-decision to ask. Settings stays
+ * reachable without competing for a slot.
+ */
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { to: '/budgets', label: 'Budgets', icon: Wallet },
+  { to: '/', label: 'Home', icon: LayoutDashboard },
+  { to: '/transactions', label: 'Money', icon: ArrowLeftRight },
+  { to: '/afford', label: 'Afford', icon: Scale },
+  { to: '/budgets', label: 'Budget', icon: Coins },
   { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/assistant', label: 'Salo', icon: Sparkles }
+  // The coach is Salo, and it carries the Jara mark. The four-point sparkle is
+  // the house style of AI hype, which is the register this audience distrusts.
+  { to: '/assistant', label: 'Salo', icon: SaloMark }
 ]
+
+const { profile, user } = useCurrentUser()
 </script>
 
 <template>
   <div class="min-h-dvh bg-background">
-    <!-- Desktop sidebar -->
+    <!-- Desktop rail -->
     <aside
-      class="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card px-3 py-5 md:flex"
+      class="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-shell-border bg-shell text-shell-foreground md:flex"
     >
-      <NuxtLink to="/" class="mb-6 flex items-center gap-2.5 px-2">
-        <span
-          class="grid size-9 place-items-center rounded-xl bg-primary font-semibold text-primary-foreground"
-          aria-hidden="true"
-        >
-          S
+      <NuxtLink
+        to="/"
+        class="flex h-20 items-center gap-3 border-b border-shell-border px-5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-shell-foreground"
+      >
+        <SaloMark class="size-8 shrink-0" title="Jara" />
+        <span>
+          <span class="block text-lg font-semibold leading-none tracking-tight">Jara</span>
+          <span class="mt-1 block text-[11px] text-shell-muted">Personal finance</span>
         </span>
-        <span class="text-lg font-semibold tracking-tight">Salo</span>
       </NuxtLink>
 
-      <nav class="flex flex-1 flex-col gap-1" aria-label="Main">
+      <nav class="flex flex-1 flex-col gap-1 px-3 py-5" aria-label="Main">
+        <span class="mb-2 px-3 text-[11px] font-medium text-shell-muted">Workspace</span>
         <NuxtLink
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          active-class="bg-accent text-accent-foreground"
+          class="group flex min-h-11 items-center gap-3 border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-shell-muted transition-colors outline-none hover:bg-shell-border hover:text-shell-foreground focus-visible:ring-2 focus-visible:ring-shell-foreground focus-visible:ring-inset"
+          active-class="!bg-shell-foreground !text-shell"
         >
           <component :is="item.icon" class="size-4.5 shrink-0" aria-hidden="true" />
           {{ item.label }}
         </NuxtLink>
       </nav>
 
-      <NuxtLink
-        to="/settings"
-        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        active-class="bg-accent text-accent-foreground"
-      >
-        <Settings class="size-4.5 shrink-0" aria-hidden="true" />
-        Settings
-      </NuxtLink>
+      <div class="border-t border-shell-border p-3">
+        <NuxtLink
+          to="/settings"
+          class="flex min-h-11 items-center gap-3 px-3 py-2.5 text-sm font-medium text-shell-muted transition-colors outline-none hover:bg-shell-border hover:text-shell-foreground focus-visible:ring-2 focus-visible:ring-shell-foreground focus-visible:ring-inset"
+          active-class="!bg-shell-foreground !text-shell"
+        >
+          <Settings class="size-4.5 shrink-0" aria-hidden="true" />
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-shell-foreground">{{ profile?.displayName || 'Settings' }}</span>
+            <span class="block truncate text-[11px] font-normal text-shell-muted">{{ user?.email || 'Preferences' }}</span>
+          </span>
+        </NuxtLink>
+      </div>
     </aside>
 
     <!-- Mobile header -->
     <header
-      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:hidden"
+      class="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-shell-border bg-shell px-4 text-shell-foreground md:hidden"
     >
-      <NuxtLink to="/" class="flex items-center gap-2">
-        <span
-          class="grid size-8 place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
-          aria-hidden="true"
-        >
-          S
-        </span>
-        <span class="font-semibold tracking-tight">Salo</span>
+      <NuxtLink to="/" class="flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-shell-foreground">
+        <SaloMark class="size-6 shrink-0" title="Jara" />
+        <span class="font-semibold tracking-tight">Jara</span>
       </NuxtLink>
       <NuxtLink
         to="/settings"
-        class="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        class="-mr-2 p-2 text-shell-muted transition-colors outline-none hover:text-shell-foreground focus-visible:ring-2 focus-visible:ring-shell-foreground"
         aria-label="Settings"
       >
         <Settings class="size-5" aria-hidden="true" />
       </NuxtLink>
     </header>
 
-    <main class="md:pl-60">
-      <div class="mx-auto w-full max-w-5xl px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10">
+    <!--
+      The stock itself: faint rules at the 32px rhythm the rows are built on, so
+      the page reads as a card that has been ruled for writing on rather than as
+      a blank background. Applied to the field, under the content.
+    -->
+    <main class="stock-ruled min-h-dvh md:pl-60">
+      <div class="mx-auto w-full max-w-6xl px-4 py-6 pb-28 sm:px-6 md:px-10 md:py-10 md:pb-14">
         <slot />
       </div>
     </main>
 
-    <!-- Mobile bottom tab bar -->
+    <!-- Mobile tab bar -->
     <nav
-      class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-shell-border bg-shell pb-[env(safe-area-inset-bottom)] text-shell-foreground md:hidden"
       aria-label="Main"
     >
       <NuxtLink
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
-        class="flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium text-muted-foreground transition-colors"
-        active-class="text-primary"
+        class="flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 border-transparent px-0.5 py-2 text-[10px] font-medium text-shell-muted transition-colors outline-none focus-visible:bg-shell-border focus-visible:text-shell-foreground"
+        active-class="!border-shell-foreground !text-shell-foreground"
       >
         <component :is="item.icon" class="size-5" aria-hidden="true" />
         {{ item.label }}
