@@ -280,6 +280,15 @@ describeWithDb('reporting aggregates (real Postgres)', () => {
       expect(transport.remainingPesewas).toBe(-10_000)
     })
 
+    it('names each line and the month by pace status', async () => {
+      const status = await queryBudgetStatus(db, ama, timezone, '2026-10-01')
+      expect(status.lines.find(line => line.name === 'Transport')!.status).toBe('over')
+      // 51,240 of 90,000 is well under the watch threshold.
+      expect(status.overallStatus).toBe('on-track')
+      const empty = await queryBudgetStatus(db, ama, timezone, '2026-09-01')
+      expect(empty.overallStatus).toBe('unbudgeted')
+    })
+
     it('puts the worst overspend first', async () => {
       const status = await queryBudgetStatus(db, ama, timezone, '2026-10-01')
       expect(status.lines[0]!.name).toBe('Transport')
@@ -342,6 +351,14 @@ describeWithDb('reporting aggregates (real Postgres)', () => {
       // No pesewa is lost to rounding: the suggestion covers the remainder.
       const covered = goal!.suggestedMonthlyPesewas! * goal!.monthsRemaining!
       expect(covered).toBeGreaterThanOrEqual(goal!.remainingPesewas)
+    })
+
+    it('reports what was moved into each goal this month, in the user’s month', async () => {
+      // Both entries are dated October; in November they belong to last month.
+      const [october] = await queryGoals(db, ama, timezone, new Date('2026-10-20T12:00:00Z'))
+      expect(october!.thisMonthPesewas).toBe(80_000)
+      const [november] = await queryGoals(db, ama, timezone, new Date('2026-11-03T12:00:00Z'))
+      expect(november!.thisMonthPesewas).toBe(0)
     })
 
     it('counts only real money as committed savings', async () => {

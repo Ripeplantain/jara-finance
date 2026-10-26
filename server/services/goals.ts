@@ -4,7 +4,7 @@ import type {
   CreateGoalInput,
   UpdateGoalInput
 } from '#shared/schemas/goals'
-import { addPesewas, assertSafePesewas, dividePesewas } from '#shared/money/pesewas'
+import { addPesewas, assertSafePesewas, dividePesewas, sumPesewas } from '#shared/money/pesewas'
 import { deriveProgress, type Progress } from '#shared/money/progress'
 import {
   compareIsoDates,
@@ -53,17 +53,35 @@ export interface GoalProgress extends Progress {
   /** True when a dated goal can no longer be reached by its date. */
   isBehind: boolean
   entryCount: number
+  /** Contributions dated in the current month, in the user's timezone. */
+  thisMonthPesewas: number
 }
 
 export async function listGoals(userId: string, timezone: string): Promise<GoalProgress[]> {
   return queryGoals(useDb(), userId, timezone)
 }
 
+/**
+ * Saved and target across the goals still being worked towards, for the one
+ * headline line on the Budgets screen. Summed here so no component adds money.
+ */
+export function summariseActiveGoals(list: GoalProgress[]) {
+  const active = list.filter(goal => goal.status === 'active')
+  return {
+    savedPesewas: sumPesewas(active.map(goal => goal.actualPesewas)),
+    targetPesewas: sumPesewas(active.map(goal => goal.targetPesewas))
+  }
+}
+
 export async function queryGoals(
   db: Database,
   userId: string,
-  timezone: string
+  timezone: string,
+  now: Date = new Date()
 ): Promise<GoalProgress[]> {
+  const today = todayInTimezone(timezone, now)
+  const monthStart = startOfMonth(today)
+
   const rows = await db
     .select({
       id: goals.id,
@@ -77,7 +95,8 @@ export async function queryGoals(
       // "actually moved" and "intended" never get conflated in transit.
       backed: sql<string>`coalesce(sum(${goalEntries.amountPesewas}) filter (where ${goalEntries.linkedTransactionId} is not null), 0)::text`,
       tracked: sql<string>`coalesce(sum(${goalEntries.amountPesewas}) filter (where ${goalEntries.linkedTransactionId} is null), 0)::text`,
-      entryCount: sql<string>`count(${goalEntries.id})::text`
+      entryCount: sql<string>`count(${goalEntries.id})::text`,
+      thisMonth: sql<string>`coalesce(sum(${goalEntries.amountPesewas}) filter (where ${goalEntries.occurredOn} >= ${monthStart}), 0)::text`
     })
     .from(goals)
     .leftJoin(financialAccounts, eq(financialAccounts.id, goals.accountId))
@@ -90,8 +109,6 @@ export async function queryGoals(
     .where(eq(goals.userId, userId))
     .groupBy(goals.id, financialAccounts.name)
     .orderBy(asc(goals.status), asc(goals.targetDate), asc(goals.name))
-
-  const today = todayInTimezone(timezone)
 
   return rows.map((row) => {
     const backedPesewas = assertSafePesewas(Number(row.backed), 'backedPesewas')
@@ -128,6 +145,7 @@ export async function queryGoals(
         && progress.remainingPesewas > 0
         && compareIsoDates(today, row.targetDate) > 0,
       entryCount: Number(row.entryCount),
+      thisMonthPesewas: assertSafePesewas(Number(row.thisMonth), 'thisMonthPesewas'),
       ...progress
     }
   })

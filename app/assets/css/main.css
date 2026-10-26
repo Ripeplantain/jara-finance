@@ -3,84 +3,112 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Jara's Calm Signal system: cool cloud, crisp surfaces, confident cobalt. */
+/*
+  Jara's Modern Financial Minimalism: warm paper, ink text, deep teal. Hex values
+  are the audited ones (see DESIGN.md). Champagne never carries text; use the
+  darker champagne-ink (--warning / --saving) for that. Expense is ink with a
+  minus sign, never red; income is teal. Direction is sign + label, not colour.
+*/
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.975 0.006 255);
-  --foreground: oklch(0.21 0.035 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.035 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.035 265);
-  --primary: oklch(0.52 0.205 265);
-  --primary-foreground: oklch(0.99 0.004 255);
-  --secondary: oklch(0.945 0.018 258);
-  --secondary-foreground: oklch(0.28 0.06 265);
-  --muted: oklch(0.955 0.011 255);
-  --muted-foreground: oklch(0.5 0.025 260);
-  --accent: oklch(0.925 0.035 225);
-  --accent-foreground: oklch(0.25 0.055 260);
-  --destructive: oklch(0.57 0.2 25);
-  --destructive-foreground: oklch(0.985 0.006 25);
-  --border: oklch(0.9 0.012 255);
-  --input: oklch(0.855 0.018 255);
-  --ring: oklch(0.58 0.17 264);
-  --income: oklch(0.5 0.145 155);
-  --income-foreground: oklch(0.985 0.006 155);
-  --expense: oklch(0.57 0.2 25);
-  --expense-foreground: oklch(0.985 0.006 25);
-  --warning: oklch(0.51 0.14 75);
-  --warning-foreground: oklch(0.985 0.006 75);
-  --saving: oklch(0.55 0.18 300);
-  --saving-foreground: oklch(0.985 0.006 300);
-  --aqua: oklch(0.72 0.12 205);
-  --chart-1: oklch(0.52 0.18 265);
-  --chart-2: oklch(0.55 0.14 155);
-  --chart-3: oklch(0.64 0.14 70);
-  --chart-4: oklch(0.58 0.17 300);
-  --chart-5: oklch(0.62 0.13 210);
-  --chart-6: oklch(0.57 0.17 25);
-  --surface-shadow: 0 1px 2px oklch(0.21 0.035 265 / 0.04), 0 10px 30px oklch(0.21 0.035 265 / 0.055);
-  --surface-shadow-hover: 0 2px 4px oklch(0.21 0.035 265 / 0.05), 0 16px 36px oklch(0.21 0.035 265 / 0.08);
+  --background: #f7f4ee;
+  --foreground: #1d2a27;
+  --card: #fffdf9;
+  --card-foreground: #1d2a27;
+  --popover: #fffdf9;
+  --popover-foreground: #1d2a27;
+  --primary: #14574f;
+  --primary-foreground: #fffdf9;
+  --secondary: #efeae0;
+  --secondary-foreground: #1d2a27;
+  --muted: #efeae0;
+  --muted-foreground: #5b6762;
+  --accent: #e1ece8;
+  --accent-foreground: #0f433d;
+  --destructive: #9c4a32;
+  --destructive-foreground: #fffdf9;
+  --border: rgb(29 42 39 / 12%);
+  --input: #7d8782;
+  --ring: #14574f;
+  --income: #14574f;
+  --income-foreground: #fffdf9;
+  --expense: #1d2a27;
+  --expense-foreground: #fffdf9;
+  --warning: #7a5c28;
+  --warning-foreground: #fffdf9;
+  --saving: #7a5c28;
+  --saving-foreground: #fffdf9;
+  --champagne: #c9a46a;
+  --aqua: #5d9a90;
+  --chart-1: #14574f;
+  --chart-2: #8a6a35;
+  --chart-3: #4f6a8c;
+  --chart-4: #85526c;
+  --chart-5: #4a7a58;
+  --chart-6: #9c5337;
+  /* v1's named tokens. The editorial layer (v1.css) reads these by role. */
+  --tint: #efeae0;
+  --faint: #8d958f;
+  --line: rgb(29 42 39 / 12%);
+  --accent-ink: #0f433d;
+  --accent-soft: #e1ece8;
+  --champagne-ink: #7a5c28;
+  --clay: #9c4a32;
+  --c1: var(--chart-1);
+  --c2: var(--chart-2);
+  --c3: var(--chart-3);
+  --c4: var(--chart-4);
+  --c5: var(--chart-5);
+  --c6: var(--chart-6);
+  --surface-shadow: 0 0 0 1px rgb(29 42 39 / 5%), 0 1px 2px rgb(29 42 39 / 4%);
+  --surface-shadow-hover: 0 0 0 1px rgb(29 42 39 / 8%), 0 4px 14px rgb(29 42 39 / 6%);
 }
 
 .dark {
-  --background: oklch(0.16 0.025 265);
-  --foreground: oklch(0.96 0.008 255);
-  --card: oklch(0.205 0.03 265);
-  --card-foreground: oklch(0.96 0.008 255);
-  --popover: oklch(0.225 0.032 265);
-  --popover-foreground: oklch(0.96 0.008 255);
-  --primary: oklch(0.69 0.17 263);
-  --primary-foreground: oklch(0.16 0.025 265);
-  --secondary: oklch(0.255 0.038 265);
-  --secondary-foreground: oklch(0.94 0.01 255);
-  --muted: oklch(0.235 0.028 265);
-  --muted-foreground: oklch(0.72 0.025 255);
-  --accent: oklch(0.285 0.055 235);
-  --accent-foreground: oklch(0.95 0.01 255);
-  --destructive: oklch(0.72 0.16 25);
-  --destructive-foreground: oklch(0.17 0.02 25);
-  --border: oklch(0.31 0.03 265);
-  --input: oklch(0.39 0.035 265);
-  --ring: oklch(0.69 0.17 263);
-  --income: oklch(0.74 0.13 155);
-  --income-foreground: oklch(0.17 0.02 155);
-  --expense: oklch(0.72 0.16 25);
-  --expense-foreground: oklch(0.17 0.02 25);
-  --warning: oklch(0.78 0.13 78);
-  --warning-foreground: oklch(0.18 0.025 78);
-  --saving: oklch(0.73 0.14 300);
-  --saving-foreground: oklch(0.17 0.02 300);
-  --aqua: oklch(0.76 0.12 205);
-  --chart-1: oklch(0.69 0.17 263);
-  --chart-2: oklch(0.74 0.13 155);
-  --chart-3: oklch(0.78 0.13 78);
-  --chart-4: oklch(0.73 0.14 300);
-  --chart-5: oklch(0.72 0.12 210);
-  --chart-6: oklch(0.72 0.16 25);
-  --surface-shadow: 0 1px 2px oklch(0.05 0.02 265 / 0.28), 0 12px 32px oklch(0.05 0.02 265 / 0.2);
-  --surface-shadow-hover: 0 2px 4px oklch(0.05 0.02 265 / 0.34), 0 18px 40px oklch(0.05 0.02 265 / 0.26);
+  --background: #121a18;
+  --foreground: #ece6da;
+  --card: #1a2421;
+  --card-foreground: #ece6da;
+  --popover: #1f2a27;
+  --popover-foreground: #ece6da;
+  --primary: #5bbfaf;
+  --primary-foreground: #0c1816;
+  --secondary: #243230;
+  --secondary-foreground: #ece6da;
+  --muted: #1f2b28;
+  --muted-foreground: #a3aea8;
+  --accent: #23413c;
+  --accent-foreground: #e6efec;
+  --destructive: #e59273;
+  --destructive-foreground: #1a0f0b;
+  --border: rgb(236 230 218 / 12%);
+  --input: #7d8a85;
+  --ring: #5bbfaf;
+  --income: #5bbfaf;
+  --income-foreground: #0c1816;
+  --expense: #ece6da;
+  --expense-foreground: #121a18;
+  --warning: #dcbc82;
+  --warning-foreground: #1a140a;
+  --saving: #dcbc82;
+  --saving-foreground: #1a140a;
+  --champagne: #b8985f;
+  --aqua: #78b3a8;
+  --chart-1: #5bbfaf;
+  --chart-2: #d2ae72;
+  --chart-3: #8fb0d6;
+  --chart-4: #d08fb0;
+  --chart-5: #8cc39a;
+  --chart-6: #e0906f;
+  --tint: #243230;
+  --faint: #7f8b86;
+  --line: rgb(236 230 218 / 12%);
+  --accent-ink: #8fd6c9;
+  --accent-soft: #23413c;
+  --champagne-ink: #dcbc82;
+  --clay: #e59273;
+  --surface-shadow: 0 0 0 1px rgb(236 230 218 / 6%), 0 1px 2px rgb(0 0 0 / 22%);
+  --surface-shadow-hover: 0 0 0 1px rgb(236 230 218 / 10%), 0 6px 18px rgb(0 0 0 / 28%);
 }
 
 @theme inline {
@@ -88,7 +116,8 @@
   --radius-md: calc(var(--radius) - 0.125rem);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 0.375rem);
-  --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -116,7 +145,14 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-saving: var(--saving);
   --color-saving-foreground: var(--saving-foreground);
+  --color-champagne: var(--champagne);
   --color-aqua: var(--aqua);
+  --color-tint: var(--tint);
+  --color-faint: var(--faint);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-champagne-ink: var(--champagne-ink);
+  --color-clay: var(--clay);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -130,7 +166,6 @@
   html { min-width: 320px; }
   body {
     @apply min-h-dvh bg-background font-sans text-foreground;
-    font-feature-settings: 'ss01';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -142,17 +177,19 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border: 3px solid var(--background); border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
-  .tabular { font-variant-numeric: tabular-nums; }
+  .tabular { font-variant-numeric: tabular-nums lining-nums; }
+  /* Fraunces for display figures and headings; opsz is left to the browser default. */
+  .font-display { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em; }
 }
 
 @layer components {
   .app-panel {
-    @apply rounded-xl border border-border bg-card;
+    @apply rounded-xl bg-card;
     box-shadow: var(--surface-shadow);
   }
-  .app-panel-muted { @apply rounded-xl border border-border bg-muted/55; }
+  .app-panel-muted { @apply rounded-xl bg-muted/70; }
   .app-toolbar {
-    @apply flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3;
+    @apply flex flex-wrap items-center gap-2 rounded-xl bg-card p-3;
     box-shadow: var(--surface-shadow);
   }
   .section-kicker { @apply text-xs font-semibold uppercase tracking-[0.12em] text-primary; }
@@ -163,10 +200,32 @@
   .status-strip { @apply rounded-lg border border-border bg-card px-4 py-3 text-sm; }
   .status-strip-error { @apply border-expense/40 bg-expense/10 text-foreground; }
   .skeleton-line { @apply animate-pulse rounded-md bg-muted motion-reduce:animate-none; }
+  /* Editorial primitives for Home and Transactions: space and hairlines, not boxes. */
+  .eyebrow { @apply text-[0.78rem] font-medium uppercase tracking-[0.12em] text-muted-foreground; }
+  .quiet-link {
+    @apply inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-[0.95rem] font-medium text-primary underline decoration-1 underline-offset-[6px] outline-none hover:decoration-transparent focus-visible:ring-2 focus-visible:ring-ring md:min-h-8;
+  }
+  .hairline-rows > li { @apply border-t border-border; }
+  .hairline-rows > li:last-child { @apply border-b; }
+  .text-toggle {
+    @apply relative min-h-11 py-2 text-[0.92rem] font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-9;
+  }
+  .text-toggle::after {
+    content: ''; @apply absolute inset-x-0 bottom-1.5 h-px origin-left scale-x-0 bg-foreground transition-transform duration-200 motion-reduce:transition-none;
+  }
+  .text-toggle[aria-pressed='true'] { @apply text-foreground; }
+  .text-toggle[aria-pressed='true']::after { @apply scale-x-100; }
+  .quiet-select {
+    @apply min-h-11 appearance-none rounded-none border-0 border-b border-border bg-transparent py-2 pr-6 text-[0.92rem] font-medium text-foreground outline-none focus-visible:border-primary focus-visible:ring-0 md:min-h-9;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%), linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+    background-position: calc(100% - 9px) 55%, calc(100% - 4px) 55%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
   .metric-surface {
-    background-image: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--saving) 78%, var(--primary)));
+    background-color: var(--primary);
     color: var(--primary-foreground);
-    box-shadow: 0 18px 46px color-mix(in oklab, var(--primary) 22%, transparent);
+    box-shadow: none;
   }
 }
 
@@ -175,7 +234,7 @@
 }
 
 /* Vendored primitives are themed here rather than edited in place. */
-[data-slot='card'] { border-radius: calc(var(--radius) + 0.375rem); box-shadow: var(--surface-shadow); }
+[data-slot='card'] { border-radius: calc(var(--radius) + 0.375rem); border-color: transparent; box-shadow: var(--surface-shadow); }
 [data-slot='input'], [data-slot='select-trigger'] { border-radius: calc(var(--radius) - 0.125rem); background: var(--card); }
 [data-slot='button'] {
   border-radius: calc(var(--radius) - 0.125rem);

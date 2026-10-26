@@ -1,4 +1,4 @@
-import { percentageOfPesewas, subtractPesewas } from './pesewas'
+import { assertSafePesewas, percentageOfPesewas, subtractPesewas } from './pesewas'
 
 /**
  * Progress against a target, in one place.
@@ -56,4 +56,39 @@ export function deriveProgress(actualPesewas: number, targetPesewas: number): Pr
 export function periodElapsedPercentage(dayOfPeriod: number, totalDays: number): number {
   if (totalDays <= 0) return 0
   return Math.max(0, Math.min(100, (dayOfPeriod / totalDays) * 100))
+}
+
+/**
+ * The share of a cap at which spending turns from "within" to "watch", as a
+ * whole percentage. Named so the UI, the tests and any future AI tool quote one
+ * number rather than each hard-coding 85.
+ */
+export const BUDGET_WATCH_THRESHOLD_PERCENT = 85
+
+export type BudgetPaceStatus = 'on-track' | 'watch' | 'over' | 'unbudgeted'
+
+/**
+ * Where a budget line stands against its cap.
+ *
+ * - `over`: `actual` is strictly greater than `target`, the same rule as
+ *   `deriveProgress().isOver`. Exactly meeting the cap is not an overspend.
+ * - `watch`: at or past 85% of the cap, but not over it.
+ * - `on-track`: anything below that, including nothing spent.
+ * - `unbudgeted`: a zero target. There is no cap to be inside or outside of, so
+ *   it gets no verdict at all, even though `deriveProgress` calls spend against
+ *   a zero target `isOver` — that flag is arithmetic, this is a judgement. A
+ *   budget with no limits set reports `unbudgeted` overall for the same reason.
+ *
+ * Compared in integers (BigInt, so `actual * 100` cannot leave the safe range):
+ * `(actual / target) * 100 >= 85` in floats can land a hair either side of 85
+ * for amounts that are exactly 85% of the cap.
+ */
+export function deriveBudgetPaceStatus(actualPesewas: number, targetPesewas: number): BudgetPaceStatus {
+  assertSafePesewas(actualPesewas, 'actual')
+  assertSafePesewas(targetPesewas, 'target')
+  if (targetPesewas === 0) return 'unbudgeted'
+  if (actualPesewas > targetPesewas) return 'over'
+  const spent = BigInt(actualPesewas) * 100n
+  const threshold = BigInt(targetPesewas) * BigInt(BUDGET_WATCH_THRESHOLD_PERCENT)
+  return spent >= threshold ? 'watch' : 'on-track'
 }

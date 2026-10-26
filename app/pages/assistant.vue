@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Chat } from '@ai-sdk/vue'
 import { DefaultChatTransport } from 'ai'
-import { Send, Wrench } from 'lucide-vue-next'
+import { ArrowUp, Wrench } from 'lucide-vue-next'
 import { toApiError } from '~/lib/errors'
 
 useHead({ title: 'Ask Salo — Jara' })
@@ -74,50 +74,43 @@ function toolLabel(type: string): string {
 </script>
 
 <template>
-  <div class="flex min-h-[calc(100dvh-9rem)] flex-col">
-    <PageHeader title="Salo" description="Ask about your money. Salo reads your real figures.">
-      <template #actions>
-        <span v-if="usage" class="text-xs text-muted-foreground tabular-nums">
-          {{ usage.remaining }} of {{ usage.limit }} messages left today
-        </span>
-      </template>
-    </PageHeader>
+  <div class="j-salo">
+    <header class="j-page-head">
+      <div>
+        <p class="j-eyebrow">Your coach</p>
+        <h1 class="j-h1" style="margin-top: 8px">Salo</h1>
+        <p class="j-lede" style="margin-top: 14px">Ask about your money. Salo reads your real figures.</p>
+      </div>
+      <p v-if="usage" class="j-small j-num">
+        {{ usage.remaining }} of {{ usage.limit }} messages left today
+      </p>
+    </header>
 
-    <p v-if="usageError" class="status-strip status-strip-error mb-4" role="alert">
+    <p v-if="usageError" class="j-small" role="alert" style="margin-top: 24px">
       Message allowance could not be checked. You can still try asking Salo.
     </p>
 
     <!-- Conversation -->
-    <div class="app-panel mx-auto flex min-h-[32rem] w-full max-w-5xl flex-1 flex-col overflow-hidden">
-      <div v-if="messages.length === 0" class="flex flex-1 flex-col items-center justify-center gap-5 px-5 py-12 text-center">
-        <span class="grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <SaloAvatar class="size-11" title="Salo" />
-        </span>
-        <div>
-          <h2 class="text-base font-semibold">What would you like to know?</h2>
-          <p class="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Salo only answers from figures it reads out of your ledger. If it does not have a
-            number, it will say so rather than guess.
-          </p>
-        </div>
-        <div class="grid w-full max-w-2xl gap-2 sm:grid-cols-2">
-          <Button
-            v-for="suggestion in SUGGESTIONS"
-            :key="suggestion"
-            variant="outline"
-            size="sm"
-            class="min-h-11 justify-start text-left"
-            :disabled="outOfMessages"
-            @click="ask(suggestion)"
-          >
-            {{ suggestion }}
-          </Button>
-        </div>
+    <section class="j-section j-salo-body" aria-label="Conversation" style="margin-top: 56px">
+      <div v-if="messages.length === 0" class="j-salo-start">
+        <SaloAvatar class="j-salo-avatar" title="Salo" />
+        <h2 class="j-h2">What would you like to know?</h2>
+        <p class="j-small" style="max-width: 46ch; margin-top: 10px">
+          Salo only answers from figures it reads out of your ledger. If it does not have a number,
+          it will say so rather than guess.
+        </p>
+        <ul class="j-salo-suggestions">
+          <li v-for="suggestion in SUGGESTIONS" :key="suggestion">
+            <button type="button" :disabled="outOfMessages" @click="ask(suggestion)">
+              {{ suggestion }}
+            </button>
+          </li>
+        </ul>
       </div>
 
       <ul
         v-else
-        class="flex flex-1 flex-col gap-6 p-4 sm:p-6"
+        class="j-salo-log"
         role="log"
         aria-label="Conversation with Salo"
         aria-live="polite"
@@ -127,67 +120,55 @@ function toolLabel(type: string): string {
         <li
           v-for="message in messages"
           :key="message.id"
-          class="flex flex-col gap-1.5"
-          :class="message.role === 'user' ? 'items-end' : 'items-start'"
+          :class="message.role === 'user' ? 'is-user' : 'is-salo'"
         >
+          <p v-if="message.role !== 'user'" class="j-eyebrow who">Salo</p>
           <template v-for="(part, index) in message.parts" :key="index">
-            <div
-              v-if="part.type === 'text'"
-              class="max-w-[92%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm sm:max-w-[76%]"
-              :class="message.role === 'user'
-                ? 'rounded-br-md bg-primary text-primary-foreground'
-                : 'rounded-bl-md border border-border bg-muted/55'"
-            >
-              {{ part.text }}
-            </div>
+            <p v-if="part.type === 'text'" class="said">{{ part.text }}</p>
 
             <!--
               Tool calls are surfaced rather than hidden: the user's only way to
               see where a figure came from is to see which tool produced it.
             -->
-            <p
-              v-else-if="part.type.startsWith('tool-')"
-              class="flex items-center gap-1.5 text-xs text-muted-foreground"
-            >
-              <Wrench class="size-3" aria-hidden="true" />
+            <p v-else-if="part.type.startsWith('tool-')" class="j-small checked">
+              <Wrench :size="12" aria-hidden="true" />
               Checked {{ toolLabel(part.type) }}
             </p>
           </template>
         </li>
 
-        <li v-if="isStreaming" class="flex items-center gap-2 text-sm text-muted-foreground">
-          <!-- A quiet, familiar thinking indicator. -->
-          <span class="flex gap-1" aria-hidden="true">
-            <span class="size-2 animate-pulse rounded-full bg-current [animation-delay:-0.3s]" />
-            <span class="size-2 animate-pulse rounded-full bg-current [animation-delay:-0.15s]" />
-            <span class="size-2 animate-pulse rounded-full bg-current" />
-          </span>
+        <li v-if="isStreaming" class="is-salo j-small">
+          <span class="j-salo-dots" aria-hidden="true"><i /><i /><i /></span>
           Salo is thinking
         </li>
       </ul>
-      <!-- Composer -->
-      <div class="sticky bottom-20 mt-auto border-t border-border bg-card/95 p-3 backdrop-blur-lg md:bottom-0 sm:p-4">
-      <p v-if="error" class="mb-2 text-sm text-destructive" role="alert">{{ error }}</p>
-      <p v-else-if="outOfMessages" class="mb-2 text-sm text-muted-foreground">
-        You have used today's messages. The allowance resets at midnight.
-      </p>
 
-      <form class="flex items-end gap-2" @submit.prevent="send">
-        <label for="ask" class="sr-only">Ask Salo</label>
-        <Input
-          id="ask"
-          v-model="input"
-          :disabled="outOfMessages"
-          placeholder="Ask about your money…"
-          class="min-h-11 rounded-xl border-0 bg-muted/70 shadow-none focus-visible:ring-2"
-          autocomplete="off"
-        />
-        <Button type="submit" size="icon" :disabled="isStreaming || outOfMessages || input.trim() === ''">
-          <Send />
-          <span class="sr-only">Send</span>
-        </Button>
-      </form>
+      <!-- Composer -->
+      <div class="j-salo-composer">
+        <p v-if="error" class="j-field-error" style="margin: 0 0 10px" role="alert">{{ error }}</p>
+        <p v-else-if="outOfMessages" class="j-small" style="margin-bottom: 10px">
+          You have used today's messages. The allowance resets at midnight.
+        </p>
+
+        <form class="j-search" style="max-width: none" @submit.prevent="send">
+          <label for="ask" class="j-sr">Ask Salo</label>
+          <input
+            id="ask"
+            v-model="input"
+            :disabled="outOfMessages"
+            placeholder="Ask about your money…"
+            autocomplete="off"
+          >
+          <button
+            type="submit"
+            class="j-salo-send"
+            :disabled="isStreaming || outOfMessages || input.trim() === ''"
+          >
+            <ArrowUp :size="18" aria-hidden="true" />
+            <span class="j-sr">Send</span>
+          </button>
+        </form>
       </div>
-    </div>
+    </section>
   </div>
 </template>

@@ -1,115 +1,154 @@
 <script setup lang="ts">
 import {
   ArrowLeftRight,
-  Coins,
+  ChartLine,
+  Ellipsis,
   LayoutDashboard,
+  Plus,
   Scale,
   Settings,
-  Target
+  Wallet
 } from 'lucide-vue-next'
-import { JaraMark, SaloAvatar } from '#components'
+import { SaloAvatar } from '#components'
 
+/**
+ * Six destinations, in the order v1's shell reads them. The top bar shows all
+ * six; the phone tab bar is v1's own four plus "More" (Afford, Salo, Settings),
+ * because six labelled targets do not fit 390px at 44px each without clipping
+ * "Transactions".
+ */
 const navItems = [
-  { to: '/', label: 'Home', icon: LayoutDashboard },
-  { to: '/transactions', label: 'Money', icon: ArrowLeftRight },
-  { to: '/afford', label: 'Afford', icon: Scale },
-  { to: '/budgets', label: 'Budget', icon: Coins },
-  { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/assistant', label: 'Salo', icon: SaloAvatar }
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true, tab: true },
+  { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight, tab: true },
+  // Goals are managed on /goals but belong to the Budgets screen, as in v1.
+  { to: '/budgets', label: 'Budgets', icon: Wallet, tab: true, also: ['/goals'] },
+  { to: '/insights', label: 'Insights', icon: ChartLine, tab: true },
+  { to: '/afford', label: 'Afford', icon: Scale, tab: false },
+  { to: '/assistant', label: 'Salo', icon: SaloAvatar, tab: false }
+]
+const tabItems = navItems.filter(item => item.tab)
+const moreItems = [
+  ...navItems.filter(item => !item.tab),
+  { to: '/settings', label: 'Settings', icon: Settings }
 ]
 
-const { profile, user } = useCurrentUser()
+const route = useRoute()
+const { open: openAdd } = useAddTransaction()
+const moreOpen = ref(false)
+
+function isActive(item: { to: string, exact?: boolean, also?: string[] }) {
+  if (item.exact) return route.path === item.to
+  return [item.to, ...(item.also ?? [])].some(path => route.path === path || route.path.startsWith(`${path}/`))
+}
+const moreActive = computed(() => moreItems.some(item => isActive(item)))
+const settingsActive = computed(() => route.path.startsWith('/settings'))
+
+watch(() => route.path, () => { moreOpen.value = false })
 </script>
 
 <template>
-  <div class="min-h-dvh bg-background">
-    <aside
-      class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-card/95 md:flex"
-    >
-      <NuxtLink
-        to="/"
-        class="flex h-20 items-center gap-3 px-5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      >
-        <span class="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-          <JaraMark class="size-6" title="Jara" />
-        </span>
-        <span>
-          <span class="block text-lg font-bold leading-none tracking-tight">Jara</span>
-          <span class="mt-1 block text-[11px] font-medium text-muted-foreground">Money, made clear</span>
-        </span>
-      </NuxtLink>
-
-      <nav class="flex flex-1 flex-col gap-1 px-3 py-5" aria-label="Main">
-        <span class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Overview</span>
-        <NuxtLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          active-class="!bg-primary/10 !text-primary"
-        >
-          <component :is="item.icon" class="size-4.5 shrink-0" aria-hidden="true" />
-          {{ item.label }}
-          <span class="ml-auto h-4 w-0.5 rounded-full bg-primary opacity-0 group-[.router-link-active]:opacity-100" aria-hidden="true" />
+  <div class="j-app">
+    <header class="j-top">
+      <div class="j-top-inner">
+        <NuxtLink to="/" class="j-mark" aria-label="Jara home">
+          <JaraMark class="j-mark-glyph" />
+          Jara
         </NuxtLink>
-      </nav>
-
-      <div class="m-3 rounded-xl border border-border bg-muted/50 p-2">
-        <NuxtLink
-          to="/settings"
-          class="flex min-h-12 items-center gap-3 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
-          active-class="bg-card"
-        >
-          <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/12 text-xs font-bold text-primary">
-            {{ (profile?.displayName || user?.email || 'J').charAt(0).toUpperCase() }}
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="block truncate font-semibold">{{ profile?.displayName || 'Settings' }}</span>
-            <span class="block truncate text-[11px] text-muted-foreground">{{ user?.email || 'Preferences' }}</span>
-          </span>
-          <Settings class="size-4 text-muted-foreground" aria-hidden="true" />
-        </NuxtLink>
+        <nav class="j-nav" aria-label="Main">
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.to"
+            :to="item.to"
+            :aria-current="isActive(item) ? 'page' : undefined"
+          >
+            {{ item.label }}
+          </NuxtLink>
+        </nav>
+        <div class="j-top-right">
+          <button type="button" class="j-pill" aria-label="Add transaction" @click="openAdd()">
+            <Plus :size="16" aria-hidden="true" />
+            <span class="j-pill-long">Add transaction</span>
+            <span class="j-pill-short">Add</span>
+          </button>
+          <NuxtLink
+            to="/settings"
+            class="j-icon-link"
+            :aria-current="settingsActive ? 'page' : undefined"
+            aria-label="Settings"
+          >
+            <Settings :size="20" aria-hidden="true" />
+          </NuxtLink>
+        </div>
       </div>
-    </aside>
-
-    <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl md:hidden">
-      <NuxtLink to="/" class="flex min-h-11 items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <span class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-          <JaraMark class="size-5.5" title="Jara" />
-        </span>
-        <span class="font-bold tracking-tight">Jara</span>
-      </NuxtLink>
-      <NuxtLink
-        to="/settings"
-        class="grid size-11 place-items-center rounded-full bg-card text-muted-foreground shadow-sm outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Settings"
-      >
-        <Settings class="size-5" aria-hidden="true" />
-      </NuxtLink>
     </header>
 
-    <main class="min-h-dvh md:pl-64">
-      <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 md:px-10 md:py-10 md:pb-14">
-        <slot />
+    <header class="j-mobile-head">
+      <NuxtLink to="/" class="j-mark" aria-label="Jara home">
+        <JaraMark class="j-mark-glyph" />
+        Jara
+      </NuxtLink>
+      <div class="j-mobile-actions">
+        <button type="button" class="j-pill" aria-label="Add transaction" @click="openAdd()">
+          <Plus :size="16" aria-hidden="true" /> Add
+        </button>
+        <NuxtLink
+          to="/settings"
+          class="j-icon-link"
+          :aria-current="settingsActive ? 'page' : undefined"
+          aria-label="Settings"
+        >
+          <Settings :size="20" aria-hidden="true" />
+        </NuxtLink>
       </div>
+    </header>
+
+    <main class="j-main">
+      <slot />
     </main>
 
-    <nav
-      class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_oklch(0.21_0.035_265/0.08)] backdrop-blur-xl md:hidden"
-      aria-label="Main"
-    >
+    <footer class="j-foot">
+      <p>Every figure comes from your own ledger. Moving money between accounts or into goals is never counted as income or spending.</p>
+    </footer>
+
+    <nav class="j-tabbar" aria-label="Main">
       <NuxtLink
-        v-for="item in navItems"
+        v-for="item in tabItems"
         :key="item.to"
         :to="item.to"
-        class="group flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg px-0.5 py-2 text-[10px] font-medium text-muted-foreground outline-none transition-colors focus-visible:bg-muted focus-visible:text-foreground"
-        active-class="!text-primary"
+        :aria-current="isActive(item) ? 'page' : undefined"
       >
-        <span class="grid size-8 place-items-center rounded-lg transition-colors group-[.router-link-active]:bg-primary/10">
-          <component :is="item.icon" class="size-5" aria-hidden="true" />
-        </span>
+        <component :is="item.icon" :size="21" :stroke-width="1.7" aria-hidden="true" />
         {{ item.label }}
       </NuxtLink>
+      <button
+        type="button"
+        class="j-tab-more"
+        :aria-current="moreActive ? 'page' : undefined"
+        aria-haspopup="dialog"
+        @click="moreOpen = true"
+      >
+        <Ellipsis :size="21" :stroke-width="1.7" aria-hidden="true" />
+        More
+      </button>
     </nav>
+
+    <SideSheet :open="moreOpen" label="More" @close="moreOpen = false">
+      <p class="j-eyebrow">More</p>
+      <ul class="j-rows" style="margin-top: 20px">
+        <li v-for="item in moreItems" :key="item.to">
+          <NuxtLink
+            :to="item.to"
+            class="j-row j-more-row"
+            :aria-current="isActive(item) ? 'page' : undefined"
+          >
+            <span class="j-more-icon" aria-hidden="true"><component :is="item.icon" :size="18" :stroke-width="1.7" /></span>
+            <span class="t">{{ item.label }}</span>
+            <span />
+          </NuxtLink>
+        </li>
+      </ul>
+    </SideSheet>
+
+    <AddTransactionSheet />
   </div>
 </template>

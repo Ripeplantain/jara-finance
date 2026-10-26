@@ -1,160 +1,217 @@
 ---
 name: Jara Finance
-description: A calm financial command centre that makes the next money decision clear.
+description: A quiet, editorial financial companion that makes the next money decision clear.
 colors:
-  cloud: "oklch(0.975 0.006 255)"
-  surface: "oklch(1 0 0)"
-  ink: "oklch(0.21 0.035 265)"
-  primary: "oklch(0.52 0.205 265)"
-  signal: "oklch(0.76 0.12 205)"
-  income: "oklch(0.55 0.145 155)"
-  expense: "oklch(0.57 0.20 25)"
-  warning: "oklch(0.53 0.14 75)"
-  saving: "oklch(0.55 0.18 300)"
+  paper: "#f7f4ee"
+  surface: "#fffdf9"
+  tint: "#efeae0"
+  ink: "#1d2a27"
+  muted: "#5b6762"
+  teal: "#14574f"
+  teal-deep: "#0f433d"
+  teal-soft: "#e1ece8"
+  champagne: "#c9a46a"
+  champagne-ink: "#7a5c28"
+  clay: "#9c4a32"
+  dark-paper: "#121a18"
+  dark-surface: "#1a2421"
+  dark-ink: "#ece6da"
+  dark-teal: "#5bbfaf"
+  dark-champagne-ink: "#dcbc82"
 typography:
-  family: "Archivo, ui-sans-serif, system-ui, sans-serif"
-  display: "700 / clamp(2.5rem, 5vw, 3.5rem)"
-  page-title: "700 / clamp(1.75rem, 3vw, 2.25rem)"
-  body: "400 / 0.9375rem"
-  label: "600 / 0.75rem"
+  serif: "Fraunces, Iowan Old Style, Palatino Linotype, Georgia, serif"
+  sans: "Instrument Sans, ui-sans-serif, system-ui, sans-serif"
+  display: "Fraunces 400 / clamp(3.6rem, 12.5vw, 8rem)"
+  page-title: "Fraunces 400 / clamp(2rem, 4.4vw, 3rem)"
+  section-title: "Fraunces 400-500 / clamp(1.5rem, 2.6vw, 1.85rem)"
+  body: "Instrument Sans 400 / 1rem"
+  label: "Instrument Sans 500 / 0.78rem, uppercase, 0.12em tracking"
 radius:
   control: "10px"
-  compact-card: "14px"
   card: "18px"
-  hero: "24px"
+  sheet: "20px"
+  pill: "999px"
 ---
 
 # Design System: Jara Finance
 
-## Creative North Star: Calm Signal
+## Creative North Star: Modern Financial Minimalism
 
-Jara is a modern financial command centre for a pressured decision: what is
-safe to do next? Its interface is calm, spacious and direct. A cool cloud
-canvas holds clean elevated surfaces; ultramarine carries action and confidence;
-cyan is a restrained signal of movement. The result should feel capable and
-current without drifting into fintech hype.
+Jara is a quiet place to make a pressured decision: what is safe to do next? The
+interface reads like a well-set letter, not a trading floor. Warm paper holds
+generous space; a deep teal carries action and income; ink carries everything
+else. Sections are separated by space and hairlines, not by boxes. Figures are
+large, set in a serif, and always traceable.
 
-This replaces the former paper, stamp and tally-card metaphor in full. Do not
-restore ruled backgrounds, square stamped cells, hatching, institutional green
-shells, or vintage-ledger language.
+The direction was chosen from five design previews (v1, "Modern Financial
+Minimalism", was picked; the previews have since been removed). Its rules now
+live in `app/assets/css/v1.css`. Where this document and that file differ, fix
+whichever is wrong and keep them in step.
+
+Avoid: neon, glow edges, pure black, gradient text, decorative glass, ruled
+paper and stamp metaphors, the former ultramarine and Archivo "Calm Signal"
+system, and any red-alarm treatment of spending.
 
 ## Brand identity
 
-Jara owns an open-loop `J` mark: a circular path with an opening at the upper
-right and a small signal endpoint. The open path means room to move; the loop
-means one complete view of money. The mark is authored as SVG, works in
-`currentColor`, and remains legible at favicon size.
+Jara owns the open-loop `J` mark (`JaraMark`): a circular path with an opening at
+the upper right. The open path means room to move; the loop means one complete
+view of money. It is authored SVG, uses `currentColor`, and is set in teal beside
+a Fraunces "Jara" wordmark (weight 500, tight tracking). The loop's end dot uses
+the `--aqua` token.
 
 Jara and Salo are different identities. `JaraMark` appears in product chrome,
 auth and favicons. Salo, the coach, uses a compact conversational avatar. Never
-label the app Salo or use the Jara brand mark as the coach avatar.
+label the app Salo or use the Jara mark as the coach avatar.
 
 ## Colour
 
-The CSS custom properties in `app/assets/css/main.css` are the source of truth.
-Every token has a light and dark value.
+`app/assets/css/main.css` is the source of truth; every token has a light and a
+dark value. Existing shadcn token names are kept.
 
-- **Primary ultramarine**: primary actions, links, selection and active
-  navigation.
-- **Signal cyan**: restrained supporting accent in brand and data moments.
-- **Cloud / surface / raised surface**: page, ordinary panels and emphasized
-  panels. Dark mode uses deep navy rather than pure black.
-- **Income emerald, expense coral, warning amber, saving violet**: financial
-  meaning only. They remain named tokens and always have a second cue such as a
-  sign, label, icon or texture.
-- **Chart ramp**: token driven and distinguishable in both themes.
+| Role | Light | Dark |
+|---|---|---|
+| Page (`background`) | `#f7f4ee` paper | `#121a18` deep green-ink |
+| Surface (`card`) | `#fffdf9` | `#1a2421` |
+| Text (`foreground`) | `#1d2a27` ink | `#ece6da` |
+| Secondary text (`muted-foreground`) | `#5b6762` | `#a3aea8` |
+| Primary / income | `#14574f` teal | `#5bbfaf` lifted teal |
+| Expense | `#1d2a27` ink | `#ece6da` |
+| Saving / warning | `#7a5c28` champagne-ink | `#dcbc82` |
+| Destructive | `#9c4a32` clay | `#e59273` |
+| Champagne (decorative only) | `#c9a46a` | `#b8985f` |
 
-Avoid neon, glow edges, pure black, gradient text and decorative glass. A soft
-ultramarine-to-violet wash is reserved for the primary availability surface and
-auth artwork.
+Rules:
+
+- **Direction is sign and label, never colour alone.** Expenses render in ink
+  with a minus sign; income in teal with a plus sign or "in" label. There are no
+  red alarms for spending.
+- **Champagne is used sparingly** (a rule, a tick, a track in "watch" state) and
+  never as text colour. Text that needs a champagne feel uses champagne-ink.
+- Clay is for destructive actions and "over" states, always with words.
+- **Chart ramp** (`--chart-1..6`): teal, bronze, slate blue, plum, sage, rust.
+  Every series also carries a label or direct end-label.
+- **Light is the default.** Dark mode is opt-in from Settings (Light / Dark /
+  System, saved on the device); the operating system's preference alone does
+  not switch it. Dark is a warm deep-green ink, never pure black, with a lifted
+  teal and softened champagne.
+
+Contrast, audited with a script (WCAG 2.x), light / dark: text on page 13.5 /
+14.2; text on surface 14.6 / 12.8; muted text on page 5.4 / 7.7, on surface
+5.8 / 7.0, on tint 4.9 / 6.4; primary on surface 8.3 / 7.2; primary-foreground
+on primary 8.3 / 8.2; champagne-ink on page 5.6 / 9.7; destructive on page
+5.6 / 7.3; input border on page 3.4 / 4.9 (3:1 for UI). All text pairs clear
+AA (4.5:1).
 
 ## Typography
 
-Archivo remains self-hosted through `@nuxt/fonts`; no runtime third-party font
-host is introduced. Character comes from scale and hierarchy:
+Both families are self-hosted through `@nuxt/fonts` (Google provider, Latin
+subset); no runtime third-party font host is introduced.
 
-- Display: 40–56px, 700 weight, tight tracking.
-- Page title: 28–36px, 700 weight.
-- Card title: 15–18px, 600 weight.
-- Body: 14–16px, 400–500 weight.
-- Labels: 12–13px, 600 weight.
-- Money: 650–700 weight with tabular numerals.
-
-Money is rendered only through `MoneyAmount`.
+- **Fraunces** (400, 500): the wordmark, page titles, section titles, and large
+  figures. Exposed as `--font-serif` and the `.font-display` helper. The
+  optical-size axis is not available through the module's Google provider, so
+  nothing relies on `font-variation-settings`; display sizes use size and
+  tracking (-0.02em to -0.035em) instead.
+- **Instrument Sans** (400, 500, 600): interface text, labels, controls.
+  `--font-sans`.
+- Display figure 58-128px; page title 32-48px; section title 24-30px; body
+  16px; secondary 14px; eyebrow label 12.5px uppercase with 0.12em tracking.
+- Money uses tabular, lining numerals (`.tabular`) and is rendered only through
+  `MoneyAmount`.
 
 ## Shape, surfaces and depth
 
-- Controls use a 10px radius; compact cards 14px; normal cards 18px; brand
-  heroes 24px.
-- Cards use a quiet border and soft two-layer shadow. Hierarchy comes from
-  spacing, contrast and elevation, not divider lines under every title.
-- Full pills are limited to statuses, chips and compact filters.
-- Primary buttons may be pill-adjacent; content containers never are.
-- Do not nest cards unless a genuinely independent interactive region requires
-  it.
+- Nearly borderless. Panels are a surface-coloured block with a 1px hairline
+  ring at about 5% ink and a faint shadow (`--surface-shadow`); hover raises
+  the ring slightly. No divider under every title.
+- Lists and ledgers use hairline rules (12% ink) between rows, with no outer
+  box.
+- Radius: controls 10px, cards 18px, sheets 20px on the open edge. Pills
+  (999px) for primary buttons, chips and status only.
+- Inputs are a single underline (`.j-field`, `.j-search`) that thickens to teal
+  on focus; the add, goal, contribution and account forms all use it.
+- Do not nest cards.
 
 ## Signature visualization: Funds Map
 
-`FundsMap` makes the affordability arithmetic visible as a segmented band:
-money promised to goals, money budgeted but not spent, a purchase under
-consideration, and money still available. Each segment has text and a distinct
-visual treatment, so colour is never the only cue. On narrow screens the
-labels stack instead of collapsing into tiny marks.
-
-The component never calculates financial truth. It receives integer-pesewa
-figures already returned by the server and only derives presentation widths.
+`FundsMap` makes the affordability arithmetic visible as a segmented band: money
+promised to goals, money budgeted but unspent, the purchase under consideration,
+and money still available. Each segment has text and a distinct treatment, so
+colour is never the only cue. It never calculates financial truth: it receives
+integer-pesewa figures from the server and derives only presentation widths.
 
 ## Navigation
 
-Desktop uses a 256px surface sidebar with rounded navigation items and a short
-ultramarine active indicator. The account/settings block is quiet and compact.
-Mobile uses a surface header and safe-area-aware bottom navigation. All six
-destinations remain available; Afford receives emphasis through placement and
-colour rather than a floating gimmick.
+v1's four destinations plus the two Jara adds: **Dashboard · Transactions ·
+Budgets · Insights · Afford · Salo**. Settings is an icon. Goals are managed on
+`/goals` but belong to Budgets (the nav marks Budgets active there), as in v1's
+"Budgets and goals" screen.
+
+- **Desktop:** a sticky 68px top bar on translucent paper with a bottom
+  hairline: mark and wordmark at left, the six items centred (active item has an
+  ink underline that draws in), the "Add transaction" pill and Settings at right.
+  Content sits in a single 1040px column with fluid gutters
+  (`clamp(20px, 5vw, 48px)`).
+- **Phone (under 860px):** a 56px header with the mark, the Add pill and
+  Settings, and v1's flat bottom tab bar — Dashboard, Transactions, Budgets,
+  Insights — plus "More" (Afford, Salo, Settings) in a sheet. Safe-area aware,
+  each tab at least 60px tall; the active tab uses teal.
 
 ## Route patterns
 
-- **Dashboard:** availability hero and Funds Map first, compact KPI cards, then
-  insights, spending and accounts in a responsive grid.
-- **Afford:** large price composer, decisive verdict, Funds Map and auditable
-  arithmetic.
-- **Transactions:** one filter surface, calm rows, distinct money-direction
-  icons and right-aligned figures.
-- **Budgets:** month overview, rounded progress tracks with pace marker, then
-  category rows/cards.
-- **Goals:** responsive goal cards with saving-toned progress and clear actions.
-- **Salo:** focused conversation column, separate coach avatar, useful starter
-  prompts and a stable composer.
-- **Settings:** grouped section surfaces with a sticky desktop sub-navigation.
-- **Auth/onboarding:** asymmetric brand field plus a focused elevated form; the
-  mobile form remains single-column.
+Dashboard, Transactions, Budgets and Insights were ported from the v1 preview
+screens rule for rule, through the `.j-*` classes in `app/assets/css/v1.css`.
+The other pages are composed from the same parts.
+
+- **Dashboard:** name and date, range switch, the serif "available" figure with
+  a champagne currency symbol, the stacked band, one insight as a pull quote,
+  income and spending with a six-month chart, where it went, recent rows, and
+  the budget and goals sentences.
+- **Transactions:** search first, text toggles and selects, months with In/Out
+  totals, rows opening a detail sheet. Add is a sheet.
+- **Budgets:** the month as a sentence and track, each category with a pace tick
+  and its status in words ("Comfortably within", "Nearly there", "Past the
+  limit"), a −/+ stepper that saves, then savings goals as rings.
+- **Insights:** the shape of the month, this month beside last, and notes.
+  Observations only; never predictions.
+- **Goals:** each goal as a hairline row with its ring, moved versus planned,
+  the monthly figure and "Add money"; create and contribute in sheets.
+- **Afford:** an underlined serif price field, a one-word verdict and sentence,
+  `FundsMap`, then the arithmetic as a hairline sum.
+- **Salo:** one reading column; Salo's replies sit against a champagne rule, the
+  user's in a tint bubble; starter questions as serif rows; underlined composer.
+- **Settings and auth:** serif sections with hairline rows and underlined
+  fields; auth pairs the wordmark with a focused form.
 
 ## Motion
 
-- Hover and focus transitions: 140–180ms.
-- Surface entry: opacity plus 4–8px translation, 180–240ms.
-- Progress and Funds Map: 400–550ms ease-out.
-- Button press: subtle scale to 0.98.
+- Hover and colour transitions 160-250ms; underline draws 250-300ms.
+- Page entry is opacity only, about 500ms. Tracks and rings ease out over
+  400-900ms. Sheets fade and slide, 250ms.
+- Easing `cubic-bezier(0.22, 0.61, 0.36, 1)`.
 - Never animate financial values by counting.
-- Respect `prefers-reduced-motion` and keep interactions interruptible.
+- Respect `prefers-reduced-motion`; interactions stay interruptible.
 
 ## Accessibility and mobile
 
-- Minimum coarse-pointer target: 44px.
-- Phone gutter: 16px; safe areas apply to fixed chrome.
-- Financial state never relies on colour alone.
-- Charts and segmented graphics expose text equivalents and accessible labels.
-- Loading, empty and error states appear on every data route.
-- Focus is visible in both themes; contrast is checked for normal text and
-  finance-semantic colours.
-- Test every route at 390px and 1440px in light and dark.
+- Targets are at least 44px on coarse pointers; phone gutters 16-20px; fixed
+  chrome respects safe areas.
+- Money direction and status never rely on colour alone.
+- Charts and segmented graphics expose text equivalents and `aria-*` labels.
+- Loading, empty and error states exist on every data route.
+- Focus is a visible 2px primary outline with offset, in both themes.
+- Body text meets 4.5:1 and UI boundaries 3:1 in light and dark.
+- Check every route at 390px and 1440px in light and dark.
 
 ## Implementation boundaries
 
-- Theme tokens and app-owned overrides live in `app/assets/css/main.css`.
+- Tokens live in `app/assets/css/main.css`; the v1 editorial layer (`.j-*`)
+  lives in `app/assets/css/v1.css`.
 - Shared product components live in `app/components/`.
-- Vendored primitives in `app/components/ui/` are never hand-edited.
-- Lucide remains the single interface icon set; the logo and coach avatar are
-  authored product SVGs.
-- No component derives balances or invents money. Finance invariants in
+- `app/components/ui/` is vendored and never hand-edited; there is no shadcn
+  sheet. Sheets use `app/components/SideSheet.vue`.
+- Lucide remains the single interface icon set; the mark and coach avatar are
+  authored SVGs.
+- No component derives balances or invents money; the invariants in
   `.agent/PROJECT.md` remain binding.

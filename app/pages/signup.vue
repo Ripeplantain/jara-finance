@@ -48,13 +48,11 @@ async function submit() {
 </script>
 
 <template>
-  <Card class="overflow-hidden">
-    <CardHeader>
-      <CardTitle class="text-2xl tracking-tight">Create your account</CardTitle>
-      <CardDescription>Free, and takes about a minute.</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <form class="flex flex-col gap-4" @submit.prevent="submit">
+  <div>
+    <h1 class="font-display text-[2.25rem] leading-[1.1] sm:text-[2.5rem]">Create your account</h1>
+    <p class="mt-3 text-[0.95rem] text-muted-foreground">Free, and takes about a minute.</p>
+
+    <form class="mt-8 flex flex-col gap-5" @submit.prevent="submit">
         <div class="flex flex-col gap-2">
           <Label for="name">Name</Label>
           <Input id="name" v-model="name" autocomplete="name" required placeholder="Ama Mensah" />
@@ -89,13 +87,11 @@ async function submit() {
         <Button type="submit" class="min-h-11" :disabled="pending">
           {{ pending ? 'Creating…' : 'Create account' }}
         </Button>
-      </form>
-    </CardContent>
-    <CardFooter class="justify-center">
-      <p class="text-sm text-muted-foreground">
+    </form>
+
+    <p class="mt-8 text-sm text-muted-foreground">
         Already have an account?
         <NuxtLink to="/login" class="font-medium text-primary hover:underline">Sign in</NuxtLink>
-      </p>
-    </CardFooter>
-  </Card>
+    </p>
+  </div>
 </template>

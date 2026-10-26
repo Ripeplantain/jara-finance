@@ -13,7 +13,7 @@ function uniqueEmail(): string {
 }
 
 const PASSWORD = 'salo-e2e-password'
-const SIGNED_IN_ROUTES = ['/', '/afford', '/transactions', '/budgets', '/goals', '/assistant', '/settings']
+const SIGNED_IN_ROUTES = ['/', '/transactions', '/budgets', '/goals', '/insights', '/afford', '/assistant', '/settings']
 
 /**
  * Navigate, then wait until Vue has hydrated.
@@ -67,14 +67,17 @@ async function addAccount(page: Page, name: string, openingBalance: string) {
 
 async function addExpense(page: Page, amount: string, category: string, merchant?: string) {
   await gotoReady(page, '/transactions')
-  await page.getByRole('button', { name: 'Record transaction' }).click()
-  await page.getByRole('button', { name: 'Expense' }).click()
-  await page.getByLabel('Amount').fill(amount)
-  await page.getByLabel('Category').selectOption({ label: category })
+  // The top bar's pill and the ledger's own button open the same sheet.
+  await page.getByRole('button', { name: 'Add transaction' }).first().click()
+  // Scoped to the sheet: the ledger behind it has its own "Category" filter.
+  const sheet = page.getByRole('dialog')
+  await sheet.getByRole('button', { name: 'Expense' }).click()
+  await sheet.getByLabel('Amount').fill(amount)
+  await sheet.getByLabel('Category').selectOption({ label: category })
   if (merchant) {
-    await page.getByLabel(/Who \/ where/).fill(merchant)
+    await sheet.getByLabel(/Who \/ where/).fill(merchant)
   }
-  await page.getByRole('button', { name: 'Save' }).click()
+  await sheet.getByRole('button', { name: 'Save' }).click()
 }
 
 test.describe('auth gate', () => {
@@ -130,15 +133,17 @@ test.describe('a new user records their money', () => {
     await addAccount(page, 'E2E Savings', '0')
 
     await gotoReady(page, '/transactions')
-    await page.getByRole('button', { name: 'Record transaction' }).click()
-    await page.getByRole('button', { name: 'Transfer' }).click()
-    await page.getByLabel('Amount').fill('200')
+    // The top bar's pill and the ledger's own button open the same sheet.
+  await page.getByRole('button', { name: 'Add transaction' }).first().click()
+    const sheet = page.getByRole('dialog')
+    await sheet.getByRole('button', { name: 'Transfer' }).click()
+    await sheet.getByLabel('Amount').fill('200')
     // Selected by position: the account list is ordered by name, so index 0 is
     // "E2E Cash" and index 1 is "E2E Savings". The option labels carry a type
     // suffix, which makes matching them by text brittle.
-    await page.getByLabel('From account').selectOption({ index: 0 })
-    await page.getByLabel('To account').selectOption({ index: 1 })
-    await page.getByRole('button', { name: 'Save' }).click()
+    await sheet.getByLabel('From account').selectOption({ index: 0 })
+    await sheet.getByLabel('To account').selectOption({ index: 1 })
+    await sheet.getByRole('button', { name: 'Save' }).click()
 
     // Two legs: one leaving the source, one arriving at the destination.
     await expect(page.getByRole('listitem').filter({ hasText: 'sent' })).toBeVisible()
@@ -147,8 +152,8 @@ test.describe('a new user records their money', () => {
     await gotoReady(page, '/')
     // Moving money changes neither the total nor what was earned.
     await expect(page.getByText('GH₵500.00').first()).toBeVisible()
-    const moneyInStat = page.getByText('Money in', { exact: true }).locator('xpath=../../..')
-    await expect(moneyInStat.getByText('GH₵0.00', { exact: true })).toBeVisible()
+    const incomeStat = page.locator('dt', { hasText: /^Income / }).locator('xpath=..')
+    await expect(incomeStat.getByText('GH₵0', { exact: true })).toBeVisible()
     await expect(page.getByText('Add an account to start tracking your money')).toBeHidden()
   })
 })
@@ -167,8 +172,11 @@ test.describe('budgets', () => {
     await page.getByLabel('Transport', { exact: true }).fill('300')
     await page.getByRole('button', { name: 'Save budget' }).click()
 
-    // GH₵400 against a GH₵300 cap is an overspend the page must name.
-    await expect(page.getByText('GH₵100.00 over budget')).toBeVisible()
+    // GH₵400 against a GH₵300 cap is an overspend the page must name, in
+    // words rather than by colour alone.
+    const transport = page.getByRole('listitem').filter({ hasText: 'Transport' })
+    await expect(transport.getByText('Past the limit')).toBeVisible()
+    await expect(transport.getByText('GH₵100 over')).toBeVisible()
   })
 })
 
@@ -188,9 +196,11 @@ test.describe('goals', () => {
     await expect(page.getByText('of GH₵5,000')).toBeVisible()
 
     await page.getByRole('button', { name: 'Add money' }).click()
-    await page.getByLabel('How?').selectOption('tracked')
-    await page.getByLabel('Amount').fill('200')
-    await page.getByRole('button', { name: 'Add money' }).last().click()
+    // Scoped to the sheet: the new-goal sheet may still be fading out behind it.
+    const sheet = page.getByRole('dialog', { name: 'Add money to this goal' })
+    await sheet.getByLabel('How?').selectOption('tracked')
+    await sheet.getByLabel('Amount', { exact: true }).fill('200')
+    await sheet.getByRole('button', { name: 'Add money' }).click()
 
     // Progress counts it, and the balance does not — nothing moved.
     await expect(page.getByText('GH₵200.00').first()).toBeVisible()
@@ -216,12 +226,13 @@ test.describe('goals', () => {
     const goal = page.locator('article').filter({ hasText: 'Backed laptop' })
     await goal.getByRole('button', { name: 'Add money' }).click()
 
-    const fromAccount = page.getByLabel('From which account?')
+    const sheet = page.getByRole('dialog', { name: 'Add money to this goal' })
+    const fromAccount = sheet.getByLabel('From which account?')
     await expect(fromAccount.locator('option', { hasText: 'E2E Goal Savings' })).toHaveCount(0)
     await expect(fromAccount.locator('option', { hasText: 'E2E Goal Source' })).toHaveCount(1)
     await fromAccount.selectOption({ label: 'E2E Goal Source' })
-    await page.getByLabel('Amount').fill('200')
-    await page.getByRole('button', { name: 'Add money' }).last().click()
+    await sheet.getByLabel('Amount', { exact: true }).fill('200')
+    await sheet.getByRole('button', { name: 'Add money' }).click()
 
     await expect(goal.getByText('GH₵200.00', { exact: true }).first()).toBeVisible()
     await expect(goal.getByText('Moved to savings', { exact: true })).toBeVisible()

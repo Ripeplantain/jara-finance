@@ -1,14 +1,22 @@
 <script setup lang="ts">
-/** Visual allocation of server-provided affordability inputs. */
+/**
+ * Where the money in hand is spoken for, as one quiet line and four labels.
+ *
+ * Every figure is passed in from the server; the only arithmetic here is the
+ * bar's segment widths, which are drawing, not reporting. The labels carry the
+ * meaning, so the bar never depends on colour alone.
+ */
 const props = withDefaults(
   defineProps<{
     liquidPesewas: number
     committedSavingsPesewas: number
     remainingBudgetedPesewas: number
     pricePesewas?: number
+    /** The server's headroom figure, shown against its label when given. */
+    availablePesewas?: number
     animate?: boolean
   }>(),
-  { pricePesewas: 0, animate: false }
+  { pricePesewas: 0, availablePesewas: undefined, animate: false }
 )
 
 const widths = computed(() => {
@@ -41,59 +49,37 @@ const ariaLabel = computed(() => {
 })
 
 const items = computed(() => [
-  { key: 'goals' as const, label: 'Promised to goals', amount: props.committedSavingsPesewas, class: 'bg-saving' },
-  { key: 'budgets' as const, label: 'Budgeted', amount: props.remainingBudgetedPesewas, class: 'funds-pattern' },
+  { key: 'goals' as const, label: 'Set aside for goals', amount: props.committedSavingsPesewas, color: 'var(--champagne)', minus: true },
+  { key: 'budgets' as const, label: 'Budgeted, not yet spent', amount: props.remainingBudgetedPesewas, color: 'var(--faint)', minus: true },
   ...(props.pricePesewas > 0
-    ? [{ key: 'purchase' as const, label: 'This purchase', amount: props.pricePesewas, class: 'bg-foreground' }]
+    ? [{ key: 'purchase' as const, label: 'This purchase', amount: props.pricePesewas, color: 'var(--foreground)', minus: true }]
     : []),
-  { key: 'available' as const, label: 'Available', amount: null, class: 'bg-income' }
+  { key: 'available' as const, label: 'Available', amount: props.availablePesewas ?? null, color: 'var(--primary)', minus: false }
 ])
 </script>
 
 <template>
-  <div>
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h2 class="text-sm font-semibold">How your money is allocated</h2>
-        <p class="mt-1 text-xs text-muted-foreground">Every segment is part of what is currently in hand.</p>
-      </div>
-      <span class="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground">
-        Live view
-      </span>
-    </div>
-
-    <div
-      class="mt-6 flex h-5 w-full overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border"
-      role="img"
-      :aria-label="ariaLabel"
-    >
+  <div class="j-stack">
+    <div class="j-stack-bar" role="img" :aria-label="ariaLabel">
       <span
         v-for="item in items"
         :key="item.key"
-        class="h-full min-w-0 transition-[width] duration-500 ease-out motion-reduce:transition-none"
-        :class="item.class"
-        :style="{ width: `${widths[item.key]}%` }"
+        :style="{ width: `${widths[item.key]}%`, background: item.color }"
         aria-hidden="true"
       />
     </div>
 
-    <dl class="mt-5 grid gap-3 sm:grid-cols-2">
-      <div v-for="item in items" :key="item.key" class="flex items-center gap-3 rounded-lg bg-muted/55 px-3 py-2.5">
-        <span class="size-2.5 shrink-0 rounded-full" :class="item.class" aria-hidden="true" />
-        <dt class="min-w-0 flex-1 truncate text-xs text-muted-foreground">{{ item.label }}</dt>
-        <dd v-if="item.amount !== null"><MoneyAmount :pesewas="item.amount" size="sm" /></dd>
+    <dl class="j-stack-labels">
+      <div>
+        <dt><i style="background: var(--foreground)" /> Liquid, all accounts</dt>
+        <dd class="j-num"><MoneyAmount :pesewas="liquidPesewas" size="plain" hide-zero-decimals /></dd>
+      </div>
+      <div v-for="item in items" :key="item.key">
+        <dt><i :style="{ background: item.color }" /> {{ item.label }}</dt>
+        <dd v-if="item.amount !== null" class="j-num">
+          {{ item.minus ? '−' : '' }}<MoneyAmount :pesewas="item.amount" size="plain" hide-zero-decimals />
+        </dd>
       </div>
     </dl>
   </div>
 </template>
-
-<style scoped>
-.funds-pattern {
-  background-color: var(--primary);
-  background-image: repeating-linear-gradient(
-    135deg,
-    transparent 0 5px,
-    color-mix(in oklab, var(--primary-foreground) 35%, transparent) 5px 7px
-  );
-}
-</style>

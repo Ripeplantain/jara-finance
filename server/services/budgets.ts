@@ -1,7 +1,13 @@
 import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 import type { UpsertBudgetInput } from '#shared/schemas/budgets'
 import { addPesewas, assertSafePesewas } from '#shared/money/pesewas'
-import { deriveProgress, periodElapsedPercentage, type Progress } from '#shared/money/progress'
+import {
+  deriveBudgetPaceStatus,
+  deriveProgress,
+  periodElapsedPercentage,
+  type BudgetPaceStatus,
+  type Progress
+} from '#shared/money/progress'
 import {
   budgetPeriodFor,
   currentBudgetPeriod,
@@ -28,6 +34,8 @@ export interface BudgetLine extends Progress {
   name: string
   icon: string
   colorIndex: number
+  /** Pace verdict for this cap — see `deriveBudgetPaceStatus`. Additive. */
+  status: BudgetPaceStatus
 }
 
 export interface BudgetStatus {
@@ -40,6 +48,8 @@ export interface BudgetStatus {
   totalLimitPesewas: number
   totalSpentPesewas: number
   overall: Progress
+  /** Verdict for the whole month; `unbudgeted` when no limits are set. */
+  overallStatus: BudgetPaceStatus
   /** How far through the month we are, so "60% spent" can be judged in context. */
   periodElapsedPercent: number
   lines: BudgetLine[]
@@ -134,6 +144,10 @@ export async function queryBudgetStatus(
       ...deriveProgress(
         spentByCategory.get(allocation.categoryId) ?? 0,
         allocation.limitPesewas
+      ),
+      status: deriveBudgetPaceStatus(
+        spentByCategory.get(allocation.categoryId) ?? 0,
+        allocation.limitPesewas
       )
     }))
     // Worst overspend first: the line that needs attention leads the list.
@@ -182,6 +196,7 @@ export async function queryBudgetStatus(
     totalLimitPesewas,
     totalSpentPesewas,
     overall: deriveProgress(totalSpentPesewas, totalLimitPesewas),
+    overallStatus: deriveBudgetPaceStatus(totalSpentPesewas, totalLimitPesewas),
     periodElapsedPercent: periodElapsedPercentage(elapsedDays, totalDays),
     lines,
     unbudgetedSpend

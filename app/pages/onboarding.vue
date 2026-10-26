@@ -58,15 +58,11 @@ async function submit() {
 </script>
 
 <template>
-  <Card class="overflow-hidden">
-    <CardHeader>
-      <CardTitle class="text-2xl tracking-tight">Set up your money view</CardTitle>
-      <CardDescription>
-        This is how Jara works out your months and what you can afford.
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      <form class="flex flex-col gap-4" @submit.prevent="submit">
+  <div>
+    <h1 class="font-display text-[2.25rem] leading-[1.1] sm:text-[2.5rem]">Set up your money view</h1>
+    <p class="mt-3 text-[0.95rem] text-muted-foreground">This is how Jara works out your months and what you can afford.</p>
+
+    <form class="mt-8 flex flex-col gap-5" @submit.prevent="submit">
         <div class="flex flex-col gap-2">
           <Label for="displayName">What should Jara call you?</Label>
           <Input id="displayName" v-model="displayName" required placeholder="Ama" />
@@ -118,7 +114,6 @@ async function submit() {
         <Button type="submit" class="min-h-11" :disabled="pending">
           {{ pending ? 'Saving…' : 'Start using Jara' }}
         </Button>
-      </form>
-    </CardContent>
-  </Card>
+    </form>
+  </div>
 </template>

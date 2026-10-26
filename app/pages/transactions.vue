@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { ArrowDownRight, ArrowLeftRight, ArrowUpRight, Trash2, Wallet } from 'lucide-vue-next'
+import { Plus, Search, Wallet } from 'lucide-vue-next'
+import { formatPesewas } from '#shared/money/format'
 import { PERIOD_KINDS } from '#shared/period/month'
 
 useHead({ title: 'Transactions — Jara' })
 
+const { open: openAdd } = useAddTransaction()
+
 // `?amount=` arrives from the Afford screen. Read once rather than watched: it
-// seeds the form, it does not own it.
+// seeds the add sheet, it does not own it.
 const amountQuery = useRoute().query.amount
 const initialAmount = typeof amountQuery === 'string' ? amountQuery : undefined
-const recording = ref(Boolean(initialAmount))
+onMounted(() => {
+  if (initialAmount) openAdd({ amount: initialAmount })
+})
 
-const period = ref<(typeof PERIOD_KINDS)[number]>('this_month')
+const period = ref<(typeof PERIOD_KINDS)[number]>('all_time')
 const accountFilter = ref('')
-const typeFilter = ref('')
+const categoryFilter = ref('')
+const typeFilter = ref<'' | 'income' | 'expense' | 'transfer'>('')
 const search = ref('')
 
 const { data: accountData, error: accountsError } = await useFetch('/api/accounts')
@@ -29,8 +35,9 @@ const { data: categoryData } = await useFetch('/api/categories')
 const listQuery = computed(() => ({
   period: period.value,
   accountId: accountFilter.value || undefined,
+  categoryId: categoryFilter.value || undefined,
   type: typeFilter.value || undefined,
-  search: search.value || undefined
+  search: search.value.trim() || undefined
 }))
 
 const {
@@ -58,6 +65,32 @@ const rows = computed<TransactionRow[]>(() => [
   ...extraRows.value
 ])
 
+/**
+ * Rows grouped under their month, in the order the server sent them. Grouping
+ * is layout only: each month's In and Out come from the server (below), over the
+ * whole month and never from the rows that happen to be loaded.
+ */
+const groups = computed(() => {
+  const out: Array<{ month: string, entries: TransactionRow[] }> = []
+  for (const row of rows.value) {
+    const month = row.occurredOn.slice(0, 7)
+    const last = out[out.length - 1]
+    if (last && last.month === month) last.entries.push(row)
+    else out.push({ month, entries: [row] })
+  }
+  return out
+})
+
+// In and out per month, for the same period and account as the list. Only
+// shown while no search, type or category narrows the rows, because the totals
+// would then disagree with what is listed under the heading.
+const { data: monthTotals, refresh: refreshMonthTotals } = await useFetch('/api/transactions/month-totals', {
+  query: computed(() => ({ period: period.value, accountId: accountFilter.value || undefined }))
+})
+const totalsByMonth = computed(() => new Map((monthTotals.value?.months ?? []).map(row => [row.month, row])))
+const narrowed = computed(() => Boolean(categoryFilter.value || typeFilter.value || search.value.trim()))
+const money = (value: number) => formatPesewas(value, { hideZeroDecimals: true })
+
 async function loadMore() {
   if (!cursor.value) return
   loadingMore.value = true
@@ -72,31 +105,44 @@ async function loadMore() {
   }
 }
 
-async function remove(id: string, isTransfer: boolean) {
-  const message = isTransfer
+const selected = ref<TransactionRow | null>(null)
+const heading = ref<HTMLElement | null>(null)
+const deleting = ref(false)
+const deleteError = ref('')
+
+watch(selected, () => { deleteError.value = '' })
+
+async function remove(row: TransactionRow) {
+  const message = row.type === 'transfer'
     ? 'Delete this transfer? Both sides of it will be removed.'
     : 'Delete this transaction?'
   if (!confirm(message)) return
-  await $fetch(`/api/transactions/${id}`, { method: 'DELETE' })
-  await refreshList()
-}
-
-async function onSaved() {
-  recording.value = false
-  await refreshList()
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await $fetch(`/api/transactions/${row.id}`, { method: 'DELETE' })
+  } catch {
+    deleteError.value = 'Could not delete this transaction. Try again.'
+    return
+  } finally {
+    deleting.value = false
+  }
+  selected.value = null
+  await Promise.all([refreshList(), refreshMonthTotals()])
+  // The row that opened the sheet is gone; hand focus back to the page.
+  await nextTick()
+  heading.value?.focus()
 }
 
 const accounts = computed(() => accountData.value?.accounts ?? [])
 const categories = computed(() => categoryData.value?.categories ?? [])
-// The period's own end date is today for every period containing today, and
-// the server resolved it in the user's timezone — so it beats a browser clock.
-const today = computed(() => listData.value?.period.end ?? new Date().toISOString().slice(0, 10))
 
-const typeIcons = {
-  income: ArrowUpRight,
-  expense: ArrowDownRight,
-  transfer: ArrowLeftRight
-} as const
+const TYPE_FILTERS = [
+  { key: '', label: 'All' },
+  { key: 'income', label: 'Income' },
+  { key: 'expense', label: 'Expenses' },
+  { key: 'transfer', label: 'Transfers' }
+] as const
 
 const PERIOD_LABELS: Record<string, string> = {
   this_month: 'This month',
@@ -107,28 +153,60 @@ const PERIOD_LABELS: Record<string, string> = {
   custom: 'Custom'
 }
 
-const selectClass = 'field-select !w-auto'
+const filtering = computed(() =>
+  Boolean(accountFilter.value || categoryFilter.value || typeFilter.value || search.value.trim())
+)
+
+function clearFilters() {
+  accountFilter.value = ''
+  categoryFilter.value = ''
+  typeFilter.value = ''
+  search.value = ''
+}
+
+const facts = computed(() => {
+  const row = selected.value
+  if (!row) return []
+  const out: Array<[string, string]> = [
+    ['Type', entryTypeLabel(row)],
+    ['Date', formatDayLong(row.occurredOn)]
+  ]
+  if (row.type === 'transfer') {
+    out.push([row.transferDirection === 'in' ? 'Received into' : 'Sent from', row.accountName])
+  } else {
+    if (row.categoryName) out.push(['Category', row.categoryName])
+    out.push(['Account', row.accountName])
+    if (row.merchant) out.push(['Who / where', row.merchant])
+  }
+  out.push(['Note', row.note || 'No note'])
+  return out
+})
 </script>
 
 <template>
   <div>
-    <PageHeader title="Transactions" description="A searchable ledger of everything that happened to your money.">
-      <template #actions>
-        <Button v-if="accounts.length" size="sm" @click="recording = true">Record transaction</Button>
-      </template>
-    </PageHeader>
+    <header style="display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap">
+      <div>
+        <p class="j-eyebrow">Ledger</p>
+        <h1 ref="heading" tabindex="-1" class="j-h1" style="margin-top: 8px; outline: none">Transactions</h1>
+      </div>
+      <button v-if="accounts.length" type="button" class="j-pill is-quiet" @click="openAdd({ amount: initialAmount })">
+        <Plus :size="16" aria-hidden="true" /> Add transaction
+      </button>
+    </header>
 
-    <p v-if="accountsError" class="status-strip status-strip-error mb-5" role="alert">
+    <p v-if="accountsError" class="status-strip status-strip-error mt-8" role="alert">
       Could not load your accounts.
     </p>
 
-    <div v-if="!accountData && !accountsError" class="app-panel p-5" aria-label="Loading accounts">
+    <div v-if="!accountData && !accountsError" class="mt-10" aria-label="Loading accounts">
       <div class="skeleton-line h-4 w-40" />
-      <div class="skeleton-line mt-4 h-10 w-full" />
+      <div class="skeleton-line mt-4 h-10 w-full max-w-md" />
     </div>
 
     <EmptyState
       v-else-if="accounts.length === 0"
+      class="mt-10"
       :icon="Wallet"
       title="You need an account first"
       description="Transactions belong to an account — cash, Mobile Money or a bank. Add one and come back."
@@ -138,48 +216,61 @@ const selectClass = 'field-select !w-auto'
       </Button>
     </EmptyState>
 
-    <div v-else class="flex flex-col gap-4">
-      <div class="app-toolbar">
-        <div class="flex min-w-0 flex-1 flex-wrap gap-2">
-          <select v-model="period" :class="selectClass" aria-label="Period">
-            <option v-for="kind in PERIOD_KINDS.filter(k => k !== 'custom')" :key="kind" :value="kind">
-              {{ PERIOD_LABELS[kind] }}
-            </option>
-          </select>
-
-          <select v-model="accountFilter" :class="selectClass" aria-label="Account">
-            <option value="">All accounts</option>
-            <option v-for="account in accounts" :key="account.accountId" :value="account.accountId">
-              {{ account.name }}
-            </option>
-          </select>
-
-          <select v-model="typeFilter" :class="selectClass" aria-label="Type">
-            <option value="">All types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expenses</option>
-            <option value="transfer">Transfers</option>
-          </select>
-
-          <Input
-            v-model="search"
-            aria-label="Search notes"
-            placeholder="Search notes…"
-            class="h-11 w-full sm:ml-auto sm:w-52 md:h-9"
-          />
+    <div v-else>
+      <div style="margin-top: 44px">
+        <label class="j-search">
+          <Search :size="18" aria-hidden="true" />
+          <span class="j-sr">Search transactions</span>
+          <input v-model="search" type="search" placeholder="Search by name, category or note" autocomplete="off">
+        </label>
+        <div class="j-filters">
+          <div class="j-toggles" role="group" aria-label="Type">
+            <button
+              v-for="item in TYPE_FILTERS"
+              :key="item.key"
+              type="button"
+              class="j-toggle"
+              :aria-pressed="typeFilter === item.key"
+              @click="typeFilter = item.key"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0 24px">
+            <label>
+              <span class="j-sr">Period</span>
+              <select v-model="period" class="j-select">
+                <option v-for="kind in PERIOD_KINDS.filter(k => k !== 'custom')" :key="kind" :value="kind">
+                  {{ PERIOD_LABELS[kind] }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span class="j-sr">Account</span>
+              <select v-model="accountFilter" class="j-select">
+                <option value="">All accounts</option>
+                <option v-for="account in accounts" :key="account.accountId" :value="account.accountId">
+                  {{ account.name }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span class="j-sr">Category</span>
+              <select v-model="categoryFilter" class="j-select">
+                <option value="">All categories</option>
+                <option v-for="category in categories" :key="category.id" :value="category.id">
+                  {{ category.name }}
+                </option>
+              </select>
+            </label>
+          </div>
         </div>
+        <p class="j-sr" aria-live="polite">{{ rows.length }} transactions shown</p>
       </div>
 
-      <div class="flex items-center justify-between gap-3">
-        <p v-if="listData" class="text-xs text-muted-foreground">
-          {{ listData.period.label }} · {{ rows.length }} shown
-        </p>
-        <p class="text-xs text-muted-foreground">Newest first</p>
-      </div>
-
-      <div v-if="listStatus === 'pending'" class="app-panel" aria-label="Loading transactions">
-        <div v-for="index in 5" :key="index" class="ledger-row flex items-center gap-4">
-          <div class="skeleton-line size-10 shrink-0" />
+      <div v-if="listStatus === 'pending' && rows.length === 0" class="mt-12" aria-label="Loading transactions">
+        <div v-for="index in 5" :key="index" class="flex items-center gap-4 border-t border-border py-4">
+          <div class="skeleton-line size-9 shrink-0 !rounded-full" />
           <div class="min-w-0 flex-1">
             <div class="skeleton-line h-3 w-36" />
             <div class="skeleton-line mt-2 h-2.5 w-52 max-w-full" />
@@ -188,91 +279,88 @@ const selectClass = 'field-select !w-auto'
         </div>
       </div>
 
-      <p v-else-if="listError" class="status-strip status-strip-error" role="alert">
+      <p v-else-if="listError" class="status-strip status-strip-error mt-10" role="alert">
         Could not load these transactions. Try changing the filters or refreshing.
       </p>
 
-        <div v-else-if="rows.length === 0" class="app-panel px-6 py-12 text-center">
-          <p class="text-sm font-medium">Nothing here</p>
-          <p class="mt-1 text-sm text-muted-foreground">
-            No transactions match these filters in {{ listData?.period.label }}.
-          </p>
-        </div>
+      <div v-else-if="rows.length === 0" class="j-empty">
+        <p>{{ filtering ? 'Nothing matches that.' : 'Nothing here yet.' }}</p>
+        <p class="j-lede">
+          {{ filtering
+            ? `Try a different word, or clear the filters. Nothing matches them in ${listData?.period.label}.`
+            : `No transactions recorded in ${listData?.period.label}.` }}
+        </p>
+        <button v-if="filtering" type="button" class="j-link" style="margin-top: 16px" @click="clearFilters">
+          Clear search and filters
+        </button>
+      </div>
 
-        <ul v-else class="app-panel flex flex-col divide-y divide-border overflow-hidden">
-          <li
-            v-for="row in rows"
-            :key="row.id"
-            class="group flex min-h-16 items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/45 sm:px-4"
-          >
-            <span
-              class="grid size-10 shrink-0 place-items-center rounded-xl"
-              :class="row.type === 'income'
-                ? 'bg-income/12 text-income'
-                : row.type === 'expense'
-                  ? 'bg-expense/12 text-expense'
-                  : 'bg-saving/12 text-saving'"
-              aria-hidden="true"
-            >
-              <component :is="typeIcons[row.type]" class="size-4.5" />
-            </span>
-
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium">
-                {{ row.merchant || row.categoryName || (row.type === 'transfer' ? 'Transfer' : 'Uncategorised') }}
-              </p>
-              <p class="truncate text-xs text-muted-foreground">
-                {{ row.occurredOn }} · {{ row.accountName }}
-                <template v-if="row.type === 'transfer'">
-                  · {{ row.transferDirection === 'in' ? 'received' : 'sent' }}
-                </template>
-                <template v-else-if="row.categoryName && row.merchant">· {{ row.categoryName }}</template>
-              </p>
-            </div>
-
-            <MoneyAmount
-              :pesewas="row.type === 'expense' ? -row.amountPesewas : row.amountPesewas"
-              :signed="row.type !== 'transfer'"
-              :tone="row.type === 'transfer' ? 'neutral' : 'auto'"
-              size="sm"
-            />
-
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              class="shrink-0 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
-              :aria-label="`Delete transaction of ${row.amountPesewas} pesewas`"
-              @click="remove(row.id, row.type === 'transfer')"
-            >
-              <Trash2 />
-            </Button>
-          </li>
-        </ul>
-
-        <Button
-          v-if="cursor"
-          variant="outline"
-          :disabled="loadingMore"
-          @click="loadMore"
+      <template v-else>
+        <section
+          v-for="group in groups"
+          :key="group.month"
+          class="j-month"
+          :aria-labelledby="`tx-month-${group.month}`"
         >
+          <div class="j-month-head">
+            <h2 :id="`tx-month-${group.month}`" class="j-h2">{{ formatMonthHeading(group.month) }}</h2>
+            <p v-if="narrowed" class="j-month-totals">
+              {{ group.entries.length }} {{ group.entries.length === 1 ? 'entry' : 'entries' }}
+            </p>
+            <p v-else-if="totalsByMonth.get(group.month)" class="j-month-totals j-num">
+              <span>In <b>+{{ money(totalsByMonth.get(group.month)!.incomePesewas) }}</b></span>
+              <span>Out <b>−{{ money(totalsByMonth.get(group.month)!.expensePesewas) }}</b></span>
+            </p>
+          </div>
+          <ul class="j-rows">
+            <li v-for="entry in group.entries" :key="entry.id">
+              <LedgerRow
+                :entry="entry"
+                interactive
+                :aria-label="entryAriaLabel(entry)"
+                @click="selected = entry"
+              />
+            </li>
+          </ul>
+        </section>
+
+        <button v-if="cursor" type="button" class="j-link" style="margin-top: 28px" :disabled="loadingMore" @click="loadMore">
           {{ loadingMore ? 'Loading…' : 'Load more' }}
-        </Button>
+        </button>
+      </template>
     </div>
 
-    <Dialog v-model:open="recording">
-      <DialogContent class="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Record something</DialogTitle>
-          <DialogDescription>Income, an expense, or money moved between your accounts.</DialogDescription>
-        </DialogHeader>
-        <TransactionForm
-          :accounts="accounts"
-          :categories="categories"
-          :today="today"
-          :initial-amount="initialAmount"
-          @saved="onSaved"
-        />
-      </DialogContent>
-    </Dialog>
+    <SideSheet :open="selected !== null" label="Transaction detail" @close="selected = null">
+      <template v-if="selected">
+        <p class="j-eyebrow">{{ entryTypeLabel(selected) }}</p>
+        <h2 class="j-h2" style="margin-top: 8px; padding-right: 40px">{{ entryTitle(selected) }}</h2>
+        <p class="j-sheet-fig j-num" :style="selected.type === 'income' ? 'color: var(--primary)' : ''">
+          <MoneyAmount
+            size="plain"
+            :pesewas="selected.type === 'expense' ? -selected.amountPesewas : selected.amountPesewas"
+            :signed="selected.type !== 'transfer'"
+          />
+        </p>
+        <dl class="j-facts">
+          <div v-for="fact in facts" :key="fact[0]">
+            <dt>{{ fact[0] }}</dt>
+            <dd>{{ fact[1] }}</dd>
+          </div>
+        </dl>
+        <p v-if="selected.type === 'transfer'" class="j-small" style="margin-top: 20px">
+          Transfers move money you already have. They are never counted as income or spending.
+        </p>
+        <p v-if="deleteError" class="status-strip status-strip-error mt-5" role="alert">{{ deleteError }}</p>
+        <button
+          type="button"
+          class="j-link"
+          style="margin-top: 28px; color: var(--clay)"
+          :disabled="deleting"
+          @click="remove(selected)"
+        >
+          {{ selected.type === 'transfer' ? 'Delete this transfer' : 'Delete this transaction' }}
+        </button>
+      </template>
+    </SideSheet>
   </div>
 </template>

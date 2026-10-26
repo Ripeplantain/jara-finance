@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Target } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import { toApiError } from '~/lib/errors'
 
 useHead({ title: 'Goals — Jara' })
@@ -127,251 +127,240 @@ async function markAchieved(goalId: string) {
   await refresh()
 }
 
-const selectClass = 'field-select'
+function dueLine(goal: { status: string, targetDate: string | null, monthsRemaining: number | null }) {
+  if (goal.status !== 'active') return goal.status === 'achieved' ? 'Achieved' : 'Archived'
+  if (!goal.targetDate) return 'No target date'
+  const months = goal.monthsRemaining === null
+    ? ''
+    : ` · ${goal.monthsRemaining} month${goal.monthsRemaining === 1 ? '' : 's'} left`
+  return `By ${formatDayWithYear(goal.targetDate)}${months}`
+}
 </script>
 
 <template>
   <div>
-    <PageHeader title="Goals" description="What you are saving towards.">
-      <template #actions>
-        <Button size="sm" @click="creating = !creating">
-          {{ creating ? 'Cancel' : 'New goal' }}
-        </Button>
-      </template>
-    </PageHeader>
+    <header class="j-page-head">
+      <div>
+        <p class="j-eyebrow">Savings</p>
+        <h1 class="j-h1" style="margin-top: 8px">Goals</h1>
+        <p class="j-lede" style="margin-top: 14px">What you are saving towards, and what is still to find.</p>
+      </div>
+      <button type="button" class="j-pill is-quiet" @click="creating = true">
+        <Plus :size="16" aria-hidden="true" /> New goal
+      </button>
+    </header>
+
+    <section class="j-section" aria-labelledby="goals-list" style="margin-top: 56px">
+      <h2 id="goals-list" class="j-sr">Your goals</h2>
+
+      <div v-if="goalsStatus === 'pending'" aria-label="Loading goals" class="j-goal-list">
+        <div v-for="index in 3" :key="index" class="j-goal-row">
+          <div class="skeleton-line" style="width: 120px; height: 120px; border-radius: 50%" />
+          <div><div class="skeleton-line h-5 w-48" /><div class="skeleton-line mt-4 h-4 w-64" /></div>
+        </div>
+      </div>
+
+      <p v-else-if="goalsLoadError" class="j-small" role="alert">
+        Could not load your savings goals. Try refreshing the page.
+      </p>
+
+      <div v-else-if="goals.length === 0" class="j-empty">
+        <p>No savings goals yet.</p>
+        <p class="j-small">
+          A goal gives your spare money a job. Jara works out what you would need to put aside each
+          month, and tells you if you fall behind.
+        </p>
+        <button type="button" class="j-pill" style="margin-top: 24px" @click="creating = true">Create a goal</button>
+      </div>
+
+      <ul v-else class="j-goal-list">
+        <li v-for="goal in goals" :key="goal.id">
+          <article class="j-goal-row">
+            <div class="j-ring" role="img" :aria-label="`${goal.name}: ${Math.round(goal.percentForBar)} percent saved`">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="bg" cx="50" cy="50" r="44" />
+                <circle
+                  v-if="goal.percentForBar > 0"
+                  class="fg"
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  pathLength="100"
+                  :stroke-dasharray="`${goal.percentForBar} 100`"
+                />
+              </svg>
+              <span class="pct" aria-hidden="true"><span>{{ Math.round(goal.percentUsed) }}<small>%</small></span></span>
+            </div>
+
+            <div class="j-goal-body">
+              <div class="j-bud-line">
+                <h3 class="j-serif" style="font-size: 1.5rem; font-weight: 450">{{ goal.name }}</h3>
+                <span v-if="goal.isBehind" class="j-status is-over">Behind its date</span>
+                <span v-else-if="goal.isOver || goal.isExactlyMet" class="j-status is-ok">Funded</span>
+              </div>
+              <p class="j-small">{{ dueLine(goal) }}</p>
+
+              <p class="j-num" style="margin-top: 14px">
+                <MoneyAmount :pesewas="goal.actualPesewas" size="md" class="j-fig-md" style="display: inline" />
+                <span class="j-small"> of <MoneyAmount :pesewas="goal.targetPesewas" hide-zero-decimals /></span>
+              </p>
+
+              <!--
+                The two kinds are shown separately on purpose: money that has
+                actually moved and money merely earmarked are different facts, and
+                collapsing them would overstate what the user has put aside.
+              -->
+              <dl v-if="goal.backedPesewas > 0 || goal.trackedPesewas > 0" class="j-goal-facts">
+                <div>
+                  <dt>Moved to savings</dt>
+                  <dd class="j-num"><MoneyAmount :pesewas="goal.backedPesewas" /></dd>
+                </div>
+                <div>
+                  <dt>Planned, not moved</dt>
+                  <dd class="j-num"><MoneyAmount :pesewas="goal.trackedPesewas" /></dd>
+                </div>
+              </dl>
+
+              <p v-if="goal.suggestedMonthlyPesewas" class="j-small" style="margin-top: 14px">
+                Put aside about
+                <MoneyAmount :pesewas="goal.suggestedMonthlyPesewas" class="text-foreground" />
+                a month to finish on time.
+              </p>
+              <p v-else-if="goal.remainingPesewas > 0 && !goal.targetDate" class="j-small" style="margin-top: 14px">
+                <MoneyAmount :pesewas="goal.remainingPesewas" /> to go. Add a target date for a monthly figure.
+              </p>
+
+              <div class="j-goal-actions">
+                <button
+                  v-if="goal.status === 'active'"
+                  type="button"
+                  class="j-pill is-quiet"
+                  @click="openContribution(goal.id, goal.accountId)"
+                >
+                  Add money
+                </button>
+                <button
+                  v-if="goal.status === 'active' && goal.remainingPesewas <= 0"
+                  type="button"
+                  class="j-link"
+                  @click="markAchieved(goal.id)"
+                >
+                  Mark achieved
+                </button>
+              </div>
+            </div>
+          </article>
+        </li>
+      </ul>
+
+      <p style="margin-top: 32px">
+        <NuxtLink to="/budgets" class="j-link">Back to budgets</NuxtLink>
+      </p>
+    </section>
 
     <!-- New goal -->
-    <Card v-if="creating" class="mb-6 overflow-hidden">
-      <CardHeader>
-        <CardTitle>New goal</CardTitle>
-        <CardDescription>A target, and optionally a date to hit it by.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form class="flex flex-col gap-4" @submit.prevent="createGoal">
-          <div class="flex flex-col gap-2">
-            <Label for="goal-name">What for?</Label>
-            <Input id="goal-name" v-model="name" required placeholder="e.g. Laptop, Rent, Emergency fund" />
-            <p v-if="createFields.name" class="text-xs text-destructive">{{ createFields.name }}</p>
-          </div>
+    <SideSheet :open="creating" label="New goal" @close="creating = false">
+      <p class="j-eyebrow">New goal</p>
+      <h2 class="j-h2" style="margin: 8px 0 28px">What are you saving for?</h2>
+      <form @submit.prevent="createGoal">
+        <label class="j-field">
+          <span>What for?</span>
+          <input id="goal-name" v-model="name" required placeholder="Laptop, rent, emergency fund">
+        </label>
+        <p v-if="createFields.name" class="j-field-error">{{ createFields.name }}</p>
 
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="flex flex-col gap-2">
-              <Label for="goal-target">Target amount</Label>
-              <Input id="goal-target" v-model="target" inputmode="decimal" required placeholder="5000" />
-              <p v-if="createFields.target" class="text-xs text-destructive">{{ createFields.target }}</p>
-            </div>
+        <label class="j-field">
+          <span>Target amount</span>
+          <input id="goal-target" v-model="target" class="big" inputmode="decimal" required placeholder="5,000">
+        </label>
+        <p v-if="createFields.target" class="j-field-error">{{ createFields.target }}</p>
 
-            <div class="flex flex-col gap-2">
-              <Label for="goal-date">By when? <span class="text-muted-foreground">(optional)</span></Label>
-              <Input id="goal-date" v-model="targetDate" type="date" />
-            </div>
-          </div>
+        <label class="j-field">
+          <span>By when? (optional)</span>
+          <input id="goal-date" v-model="targetDate" type="date">
+        </label>
 
-          <div class="flex flex-col gap-2">
-            <Label for="goal-account">Savings account <span class="text-muted-foreground">(optional)</span></Label>
-            <select id="goal-account" v-model="accountId" :class="selectClass">
-              <option value="">Track only — no account</option>
-              <option v-for="account in accounts" :key="account.accountId" :value="account.accountId">
-                {{ account.name }}
-              </option>
-            </select>
-            <p class="text-xs text-muted-foreground">
-              Pick an account if you want to move real money into this goal. Without one, Jara
-              tracks your intent but no balance changes.
-            </p>
-          </div>
+        <label class="j-field">
+          <span>Savings account (optional)</span>
+          <select id="goal-account" v-model="accountId">
+            <option value="">Track only — no account</option>
+            <option v-for="account in accounts" :key="account.accountId" :value="account.accountId">
+              {{ account.name }}
+            </option>
+          </select>
+        </label>
+        <p class="j-small" style="margin: -8px 0 24px">
+          Pick an account if you want to move real money into this goal. Without one, Jara tracks
+          your intent but no balance changes.
+        </p>
 
-          <p v-if="createError" class="status-strip status-strip-error" role="alert">{{ createError }}</p>
+        <p v-if="createError" class="j-field-error" role="alert">{{ createError }}</p>
 
-          <Button type="submit" :disabled="creatingPending">
-            {{ creatingPending ? 'Creating…' : 'Create goal' }}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <button type="submit" class="j-pill" style="width: 100%" :disabled="creatingPending">
+          {{ creatingPending ? 'Creating…' : 'Create goal' }}
+        </button>
+      </form>
+    </SideSheet>
 
-    <div v-if="goalsStatus === 'pending' && !creating" class="app-panel" aria-label="Loading goals">
-      <div v-for="index in 3" :key="index" class="ledger-row p-5">
-        <div class="flex justify-between gap-4">
-          <div class="skeleton-line h-4 w-40" />
-          <div class="skeleton-line h-4 w-16" />
-        </div>
-        <div class="skeleton-line mt-5 h-3 w-full" />
-      </div>
-    </div>
+    <!-- Contribution -->
+    <SideSheet :open="contributingTo !== null" label="Add money to this goal" @close="contributingTo = null">
+      <p class="j-eyebrow">{{ contributingGoal?.name }}</p>
+      <h2 class="j-h2" style="margin: 8px 0 12px">Add money to this goal</h2>
+      <p class="j-small" style="margin-bottom: 28px">
+        <template v-if="canBackContribution">
+          Either move real money into the goal's savings account, or record that you intend to.
+        </template>
+        <template v-else>
+          A transfer needs a goal account and a different active source account. This contribution
+          will only record your plan.
+        </template>
+      </p>
 
-    <p v-else-if="goalsLoadError && !creating" class="status-strip status-strip-error" role="alert">
-      Could not load your savings goals. Try refreshing the page.
-    </p>
+      <form @submit.prevent="contribute">
+        <label class="j-field">
+          <span>How?</span>
+          <select id="contribution-kind" v-model="contributionKind">
+            <option v-if="canBackContribution" value="backed">Move the money now — a real transfer</option>
+            <option value="tracked">Just track it — nothing moves yet</option>
+          </select>
+        </label>
 
-    <EmptyState
-      v-else-if="goals.length === 0 && !creating"
-      :icon="Target"
-      title="No savings goals yet"
-      description="A goal gives your spare money a job. Jara works out what you would need to put aside each month, and tells you if you fall behind."
-    >
-      <Button @click="creating = true">Create a goal</Button>
-    </EmptyState>
-
-    <div v-else-if="goals.length" class="grid gap-5">
-      <article v-for="goal in goals" :key="goal.id" class="app-panel overflow-hidden bg-gradient-to-br from-card to-saving/5">
-        <div class="p-4 pb-3 sm:p-5 sm:pb-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h2 class="truncate text-base font-semibold tracking-tight">{{ goal.name }}</h2>
-              <p class="mt-1 text-sm text-muted-foreground">
-                <template v-if="goal.status !== 'active'">
-                  {{ goal.status === 'achieved' ? 'Achieved' : 'Archived' }}
-                </template>
-                <template v-else-if="goal.targetDate">
-                  By {{ goal.targetDate }}
-                  <template v-if="goal.monthsRemaining !== null">
-                    · {{ goal.monthsRemaining }} month{{ goal.monthsRemaining === 1 ? '' : 's' }} left
-                  </template>
-                </template>
-                <template v-else>No target date</template>
-              </p>
-            </div>
-            <Badge v-if="goal.isBehind" variant="destructive">Behind</Badge>
-            <Badge v-else-if="goal.isOver || goal.isExactlyMet" variant="secondary">Funded</Badge>
-          </div>
-        </div>
-
-        <div class="grid gap-4 px-4 pb-4 sm:grid-cols-[minmax(0,1fr)_minmax(14rem,0.7fr)] sm:px-5 sm:pb-5">
-          <div class="flex flex-col gap-3">
-          <div class="flex items-end justify-between gap-3">
-            <div>
-              <MoneyAmount :pesewas="goal.actualPesewas" size="lg" />
-              <p class="mt-0.5 text-sm text-muted-foreground">
-                of <MoneyAmount :pesewas="goal.targetPesewas" size="sm" hide-zero-decimals />
-              </p>
-            </div>
-            <p class="text-sm font-medium tabular-nums text-muted-foreground">
-              {{ Math.round(goal.percentUsed) }}%
-            </p>
-          </div>
-
-          <ProgressBar
-            :percent="goal.percentForBar"
-            tone="saving"
-            :label="`${goal.name} progress`"
-          />
-
-          <!--
-            The two kinds are shown separately on purpose: money that has
-            actually moved and money merely earmarked are different facts, and
-            collapsing them would overstate what the user has put aside.
-          -->
-          <dl v-if="goal.backedPesewas > 0 || goal.trackedPesewas > 0" class="flex gap-4 text-xs">
-            <div>
-              <dt class="text-muted-foreground">Moved to savings</dt>
-              <dd><MoneyAmount :pesewas="goal.backedPesewas" size="sm" /></dd>
-            </div>
-            <div>
-              <dt class="text-muted-foreground">Planned, not moved</dt>
-              <dd><MoneyAmount :pesewas="goal.trackedPesewas" size="sm" /></dd>
-            </div>
-          </dl>
-
-          </div>
-
-          <div class="flex flex-col justify-between gap-4 border-t border-border pt-3 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-          <p v-if="goal.suggestedMonthlyPesewas" class="text-sm text-muted-foreground">
-            Put aside about
-            <MoneyAmount :pesewas="goal.suggestedMonthlyPesewas" size="sm" class="font-medium text-foreground" />
-            a month to finish on time.
-          </p>
-          <p v-else-if="goal.remainingPesewas > 0 && !goal.targetDate" class="text-sm text-muted-foreground">
-            <MoneyAmount :pesewas="goal.remainingPesewas" size="sm" /> to go. Add a target date for a monthly figure.
-          </p>
-
-        <div class="flex flex-wrap gap-2">
-          <Button
-            v-if="goal.status === 'active'"
-            size="sm"
-            variant="outline"
-            @click="openContribution(goal.id, goal.accountId)"
+        <label class="j-field">
+          <span>Amount</span>
+          <input
+            id="contribution-amount"
+            v-model="contributionAmount"
+            class="big"
+            inputmode="decimal"
+            required
+            placeholder="0.00"
           >
-            Add money
-          </Button>
-          <Button
-            v-if="goal.status === 'active' && goal.remainingPesewas <= 0"
-            size="sm"
-            variant="ghost"
-            @click="markAchieved(goal.id)"
-          >
-            Mark achieved
-          </Button>
-        </div>
-        </div>
-        </div>
-      </article>
-    </div>
+        </label>
 
-    <!-- Contribution dialog -->
-    <Dialog :open="contributingTo !== null" @update:open="value => !value && (contributingTo = null)">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add money to this goal</DialogTitle>
-          <DialogDescription>
-            <template v-if="canBackContribution">
-              Either move real money into the goal's savings account, or record that you intend to.
-            </template>
-            <template v-else>
-              A transfer needs a goal account and a different active source account. This contribution will only record your plan.
-            </template>
-          </DialogDescription>
-        </DialogHeader>
+        <label v-if="contributionKind === 'backed'" class="j-field">
+          <span>From which account?</span>
+          <select id="contribution-from" v-model="contributionFrom" required>
+            <option
+              v-for="account in validContributionSources"
+              :key="account.accountId"
+              :value="account.accountId"
+            >
+              {{ account.name }}
+            </option>
+          </select>
+        </label>
 
-        <form class="flex flex-col gap-4" @submit.prevent="contribute">
-          <div class="flex flex-col gap-2">
-            <Label for="contribution-kind">How?</Label>
-            <select id="contribution-kind" v-model="contributionKind" :class="selectClass">
-              <option v-if="canBackContribution" value="backed">Move the money now — a real transfer</option>
-              <option value="tracked">Just track it — nothing moves yet</option>
-            </select>
-          </div>
+        <label class="j-field">
+          <span>Date</span>
+          <input id="contribution-date" v-model="contributionDate" type="date" required>
+        </label>
 
-          <div class="flex flex-col gap-2">
-            <Label for="contribution-amount">Amount</Label>
-            <Input
-              id="contribution-amount"
-              v-model="contributionAmount"
-              inputmode="decimal"
-              required
-              placeholder="0.00"
-            />
-          </div>
+        <p v-if="contributeError" class="j-field-error" role="alert">{{ contributeError }}</p>
 
-          <div v-if="contributionKind === 'backed'" class="flex flex-col gap-2">
-            <Label for="contribution-from">From which account?</Label>
-            <select id="contribution-from" v-model="contributionFrom" :class="selectClass" required>
-              <option
-                v-for="account in validContributionSources"
-                :key="account.accountId"
-                :value="account.accountId"
-              >
-                {{ account.name }}
-              </option>
-            </select>
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <Label for="contribution-date">Date</Label>
-            <Input id="contribution-date" v-model="contributionDate" type="date" required />
-          </div>
-
-          <p v-if="contributeError" class="status-strip status-strip-error" role="alert">
-            {{ contributeError }}
-          </p>
-
-          <DialogFooter>
-            <Button type="submit" :disabled="contributePending">
-              {{ contributePending ? 'Saving…' : 'Add money' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <button type="submit" class="j-pill" style="width: 100%" :disabled="contributePending">
+          {{ contributePending ? 'Saving…' : 'Add money' }}
+        </button>
+      </form>
+    </SideSheet>
   </div>
 </template>

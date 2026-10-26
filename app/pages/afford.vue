@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { refDebounced } from '@vueuse/core'
-import { Wallet } from 'lucide-vue-next'
 
 useHead({ title: 'Can I afford it? — Jara' })
 
@@ -31,9 +30,9 @@ const { data, error, status } = await useFetch('/api/affordability', {
   keeps the answer readable without colour.
 */
 const VERDICTS = {
-  yes: { word: 'Yes', tone: 'text-income' },
-  tight: { word: 'Tight', tone: 'text-warning' },
-  no: { word: 'Not yet', tone: 'text-expense' }
+  yes: { word: 'Yes', tone: 'is-yes' },
+  tight: { word: 'Tight', tone: 'is-tight' },
+  no: { word: 'Not yet', tone: 'is-no' }
 } as const
 
 const verdict = computed(() => (data.value?.verdict ? VERDICTS[data.value.verdict] : null))
@@ -43,238 +42,156 @@ const QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 sm:gap-8">
+  <div>
     <!--
-      The price field is the page's first element and first stop in tab order.
+      The price field is the page's first control and first stop in tab order.
       A user opens this screen with a figure already in their head.
     -->
-    <div class="max-w-2xl">
-      <p class="section-kicker">Decision check</p>
-      <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">Can I afford it?</h1>
-      <p class="mt-2 text-sm text-muted-foreground">
+    <header>
+      <p class="j-eyebrow">Decision check</p>
+      <h1 class="j-h1" style="margin-top: 8px">Can I afford it?</h1>
+      <p class="j-lede" style="margin-top: 14px">
         Measure a purchase against what is genuinely free after your plans.
       </p>
-    </div>
+    </header>
 
-    <form class="app-panel max-w-2xl p-4 sm:p-6" @submit.prevent>
-      <!--
-        The page's heading and the field's label are the same words, so they are
-        the same element. Without this the screen had no h1 at all and its
-        outline started at h2.
-      -->
-      <h2 class="text-sm font-semibold">
-        <label for="price">Can I afford</label>
-      </h2>
-      <div
-        class="mt-3 flex items-baseline gap-2 rounded-xl bg-muted/60 px-4 py-3 ring-1 ring-inset ring-border focus-within:ring-2 focus-within:ring-ring"
-      >
-        <span class="text-xl font-medium text-muted-foreground" aria-hidden="true">GH₵</span>
+    <form class="j-afford-form" @submit.prevent>
+      <label for="price" class="j-eyebrow">Can I afford</label>
+      <div class="j-afford-input">
+        <span class="cur" aria-hidden="true">GH₵</span>
         <input
           id="price"
           v-model="price"
           inputmode="decimal"
           autocomplete="off"
           placeholder="0"
-          class="w-full min-w-0 bg-transparent text-4xl font-bold tracking-[-0.035em] tabular-nums outline-none placeholder:text-muted-foreground/35 sm:text-5xl"
         >
       </div>
       <!--
         Common amounts. The screen is opened mid-decision, often one-handed, and
         a round figure is usually close enough to decide on.
       -->
-      <div class="mt-3 flex flex-wrap gap-2">
+      <div class="j-toggles" style="margin-top: 14px" role="group" aria-label="Common amounts">
         <button
           v-for="amount in QUICK_AMOUNTS"
           :key="amount"
           type="button"
-          class="min-h-11 rounded-lg border border-input bg-card px-3 py-1.5 text-sm font-medium tabular-nums transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          :class="price === String(amount) ? '!border-primary bg-primary text-primary-foreground' : ''"
+          class="j-toggle j-num"
+          :aria-pressed="price === String(amount)"
           @click="price = String(amount)"
         >
           {{ amount.toLocaleString('en-GH') }}
         </button>
-        <button
-          v-if="price"
-          type="button"
-          class="min-h-11 px-3 py-1.5 text-sm font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          @click="price = ''"
-        >
-          Clear
-        </button>
+        <button v-if="price" type="button" class="j-toggle" @click="price = ''">Clear</button>
       </div>
     </form>
 
-    <p v-if="error" class="status-strip status-strip-error" role="alert">
+    <p v-if="error" class="j-small" role="alert" style="margin-top: 48px">
       {{ error.message || 'Could not work out what you can afford just now.' }}
     </p>
 
-    <div v-else-if="status === 'pending'" class="grid gap-4 lg:grid-cols-5" aria-label="Working out affordability">
-      <div class="app-panel p-5 lg:col-span-3">
-        <div class="skeleton-line h-3 w-48" />
-        <div class="skeleton-line mt-6 h-5 w-full rounded-full" />
-        <div class="mt-5 grid gap-3 sm:grid-cols-2">
-          <div v-for="index in 4" :key="index" class="skeleton-line h-10 rounded-lg" />
-        </div>
-      </div>
-      <div class="app-panel p-5 lg:col-span-2">
-        <div v-for="index in 4" :key="index" class="mb-4 flex justify-between gap-4">
-          <div class="skeleton-line h-3 w-28" />
-          <div class="skeleton-line h-3 w-20" />
-        </div>
-      </div>
+    <div v-else-if="status === 'pending'" style="margin-top: 56px" aria-label="Working out affordability">
+      <div class="skeleton-line h-16 w-64" />
+      <div class="skeleton-line mt-10 h-2 w-full" />
     </div>
 
-    <EmptyState
-      v-else-if="hasNothing"
-      :icon="Wallet"
-      title="There is nothing to measure against yet"
-      description="Add an account and record what is in it. Once Jara knows what you hold, it can tell you what a purchase would leave."
-    >
-      <Button as-child>
-        <NuxtLink to="/settings">Add an account</NuxtLink>
-      </Button>
-    </EmptyState>
+    <div v-else-if="hasNothing" class="j-empty">
+      <p>There is nothing to measure against yet.</p>
+      <p class="j-small">
+        Add an account and record what is in it. Once Jara knows what you hold, it can tell you
+        what a purchase would leave.
+      </p>
+      <NuxtLink to="/settings" class="j-pill" style="margin-top: 24px">Add an account</NuxtLink>
+    </div>
 
     <template v-else-if="data">
       <!-- The verdict. One word, then what it leaves. -->
-      <div v-if="verdict" class="app-panel flex flex-wrap items-center gap-x-6 gap-y-3 overflow-hidden bg-gradient-to-br from-card to-muted/60 p-5 sm:p-6">
-        <p
-          class="text-[2.75rem] font-bold leading-none tracking-[-0.04em] sm:text-6xl"
-          :class="verdict.tone"
-        >
-          {{ verdict.word }}
-        </p>
-        <p class="text-sm leading-snug text-muted-foreground">
+      <section v-if="verdict" class="j-section j-verdict" aria-live="polite" style="margin-top: 64px">
+        <p class="word" :class="verdict.tone">{{ verdict.word }}</p>
+        <p class="j-sentence">
           <template v-if="data.verdict === 'no'">
-            Short by
-            <MoneyAmount
-              :pesewas="Math.abs(data.afterPurchasePesewas ?? 0)"
-              size="lg"
-              tone="expense"
-              class="align-baseline"
-            />
-            <br>
+            Short by <em><MoneyAmount :pesewas="Math.abs(data.afterPurchasePesewas ?? 0)" /></em>
             of what is yours to spend.
           </template>
           <template v-else>
-            It leaves
-            <MoneyAmount
-              :pesewas="data.afterPurchasePesewas ?? 0"
-              size="lg"
-              :tone="data.verdict === 'tight' ? 'warning' : 'income'"
-              class="align-baseline"
-            />
-            <br>
+            It leaves <em><MoneyAmount :pesewas="data.afterPurchasePesewas ?? 0" /></em>
             of what is yours this month.
           </template>
         </p>
-      </div>
+      </section>
 
-      <div class="grid gap-6 lg:grid-cols-5 lg:gap-8">
+      <section class="j-section" aria-labelledby="afford-map" :style="verdict ? 'margin-top: 48px' : ''">
+        <div class="j-section-head">
+          <h2 id="afford-map" class="j-h2">What is yours to spend</h2>
+          <p class="j-small">Left out: money moved into goals, and money budgeted but not yet spent.</p>
+        </div>
         <FundsMap
-          class="app-panel p-4 sm:p-5 lg:col-span-3"
           :liquid-pesewas="data.liquidPesewas"
           :committed-savings-pesewas="data.committedSavingsPesewas"
           :remaining-budgeted-pesewas="data.remainingBudgetedPesewas"
+          :available-pesewas="data.availablePesewas"
           :price-pesewas="data.pricePesewas ?? 0"
           animate
         />
+      </section>
 
-        <!-- The same subtraction, as figures -->
-        <div class="app-panel p-4 sm:p-5 lg:col-span-2">
-          <h2 class="text-sm font-semibold">How that is worked out</h2>
-          <dl class="mt-3 border-t border-border">
-            <div class="flex items-center gap-3 border-b border-border py-2">
-              <span class="size-2.5 shrink-0 rounded-full bg-muted-foreground" aria-hidden="true" />
-              <dt class="min-w-0 flex-1 text-sm">In hand</dt>
-              <dd><MoneyAmount :pesewas="data.liquidPesewas" size="sm" /></dd>
-            </div>
-            <div class="flex items-center gap-3 border-b border-border py-2">
-              <span class="size-2.5 shrink-0 rounded-full bg-saving" aria-hidden="true" />
-              <dt class="min-w-0 flex-1 text-sm">Promised to goals</dt>
-              <dd>
-                <MoneyAmount :pesewas="-data.committedSavingsPesewas" size="sm" signed />
-              </dd>
-            </div>
-            <div class="flex items-center gap-3 border-b border-border py-2">
-              <span class="size-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-              <dt class="min-w-0 flex-1 text-sm">Budgeted, not yet spent</dt>
-              <dd>
-                <MoneyAmount :pesewas="-data.remainingBudgetedPesewas" size="sm" signed />
-              </dd>
-            </div>
-            <!--
-              Two totals, and each one is the sum of the rows above it.
+      <!-- The same subtraction, as figures -->
+      <section class="j-section" aria-labelledby="afford-sum" style="margin-top: 72px">
+        <h2 id="afford-sum" class="j-h2" style="margin-bottom: 20px">How that is worked out</h2>
+        <dl class="j-sum">
+          <div>
+            <dt>In hand, all accounts</dt>
+            <dd><MoneyAmount :pesewas="data.liquidPesewas" /></dd>
+          </div>
+          <div>
+            <dt>Promised to goals</dt>
+            <dd><MoneyAmount :pesewas="-data.committedSavingsPesewas" signed /></dd>
+          </div>
+          <div>
+            <dt>Budgeted, not yet spent</dt>
+            <dd><MoneyAmount :pesewas="-data.remainingBudgetedPesewas" signed /></dd>
+          </div>
+          <!--
+            Two totals, and each one is the sum of the rows above it.
 
-              The purchase sits *below* "Yours to spend", not above it: it is
-              not one of the three things subtracted to reach what is available,
-              it is what is then measured against that figure. With it listed
-              among them the column read as a subtraction whose total excluded
-              the row directly above the rule — the one thing this screen can
-              never do.
-            -->
-            <div class="flex items-baseline gap-3 rounded-lg bg-muted/60 px-3 py-3">
-              <dt class="min-w-0 flex-1 text-sm font-semibold">Yours to spend</dt>
+            The purchase sits *below* "Yours to spend", not above it: it is not
+            one of the three things subtracted to reach what is available, it is
+            what is then measured against that figure.
+          -->
+          <div class="is-total">
+            <dt>Yours to spend</dt>
+            <dd><MoneyAmount :pesewas="data.availablePesewas" :tone="data.availablePesewas < 0 ? 'expense' : 'neutral'" /></dd>
+          </div>
+          <template v-if="data.pricePesewas">
+            <div>
+              <dt>This purchase</dt>
+              <dd><MoneyAmount :pesewas="-data.pricePesewas" signed /></dd>
+            </div>
+            <div class="is-total">
+              <dt>{{ data.verdict === 'no' ? 'Short by' : 'Leaves' }}</dt>
               <dd>
                 <MoneyAmount
-                  :pesewas="data.availablePesewas"
-                  size="lg"
-                  :tone="data.availablePesewas < 0 ? 'expense' : 'neutral'"
+                  :pesewas="data.verdict === 'no'
+                    ? Math.abs(data.afterPurchasePesewas ?? 0)
+                    : (data.afterPurchasePesewas ?? 0)"
                 />
               </dd>
             </div>
+          </template>
+        </dl>
 
-            <template v-if="data.pricePesewas">
-              <div class="flex items-center gap-3 border-b border-border py-2">
-                <span class="size-2.5 shrink-0 rounded-full bg-foreground" aria-hidden="true" />
-                <dt class="min-w-0 flex-1 text-sm">This purchase</dt>
-                <dd><MoneyAmount :pesewas="-data.pricePesewas" size="sm" signed /></dd>
-              </div>
-              <div class="mt-2 flex items-baseline gap-3 rounded-lg bg-muted/60 px-3 py-3">
-                <dt class="min-w-0 flex-1 text-sm font-semibold">
-                  {{ data.verdict === 'no' ? 'Short by' : 'Leaves' }}
-                </dt>
-                <dd>
-                  <MoneyAmount
-                    :pesewas="data.verdict === 'no'
-                      ? Math.abs(data.afterPurchasePesewas ?? 0)
-                      : (data.afterPurchasePesewas ?? 0)"
-                    size="lg"
-                    :tone="data.verdict === 'no'
-                      ? 'expense'
-                      : data.verdict === 'tight' ? 'warning' : 'income'"
-                  />
-                </dd>
-              </div>
-            </template>
-          </dl>
-          <p class="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Money you have moved into a goal, and money you have budgeted but not yet
-            spent, are both left out — so this is what you can spend without breaking a
-            plan you already made.
-          </p>
-
-          <!-- A verdict that fits should lead somewhere. -->
-          <div v-if="data.verdict && data.verdict !== 'no'" class="mt-5 flex flex-wrap gap-2">
-            <Button as-child size="sm">
-              <NuxtLink :to="{ path: '/transactions', query: { amount: price.trim() } }">
-                Record this spend
-              </NuxtLink>
-            </Button>
-            <Button as-child size="sm" variant="outline">
-              <NuxtLink to="/budgets">See the budget behind this</NuxtLink>
-            </Button>
-          </div>
-          <div v-else-if="data.verdict === 'no'" class="mt-5 flex flex-wrap gap-2">
-            <Button as-child size="sm" variant="outline">
-              <NuxtLink to="/goals">Review what is promised to goals</NuxtLink>
-            </Button>
-            <Button as-child size="sm" variant="outline">
-              <NuxtLink to="/budgets">Adjust this month's limits</NuxtLink>
-            </Button>
-          </div>
+        <!-- A verdict that fits should lead somewhere. -->
+        <div v-if="data.verdict && data.verdict !== 'no'" class="j-goal-actions" style="margin-top: 32px">
+          <NuxtLink :to="{ path: '/transactions', query: { amount: price.trim() } }" class="j-pill">
+            Record this spend
+          </NuxtLink>
+          <NuxtLink to="/budgets" class="j-link">See the budget behind this</NuxtLink>
         </div>
-      </div>
+        <div v-else-if="data.verdict === 'no'" class="j-goal-actions" style="margin-top: 32px">
+          <NuxtLink to="/goals" class="j-link">Review what is promised to goals</NuxtLink>
+          <NuxtLink to="/budgets" class="j-link">Adjust this month's limits</NuxtLink>
+        </div>
+      </section>
     </template>
   </div>
 </template>

@@ -1,7 +1,5 @@
 # Product
 
-<!-- impeccable:product-schema 1 -->
-
 ## Platform
 
 web
@@ -98,14 +96,17 @@ read-only affordability tool, so their answers cannot drift apart.
 - Voice: plain and specific. States the figure and where it came from. Says "it
   does not have that number" rather than guessing.
 - **Never judgmental or preachy.** Red alarms, scolding copy and guilt as a
-  motivator are out. The app reports; it does not lecture.
+  motivator are out. Spending is shown in ink with a minus sign, income in teal;
+  direction is always sign and label, never colour alone. The app reports; it does not lecture.
 - **Never the crypto/hype aesthetic.** Neon on near-black, glow edges and
   breathless motion read as a scam to this audience.
 - Binding visual constraints the user set directly: the brand mark is a
   **geometric open-loop J**, distinct from Salo's coach avatar, and the app
   carries a **real, self-hosted typeface** (via `@nuxt/fonts`) rather than the
-  browser default stack. The visual system is modern SaaS—calm cloud/navy
-  surfaces, ultramarine action, restrained cyan signal accents and soft depth.
+  browser default stack. The visual system is **Modern Financial Minimalism**:
+  warm paper, ink text, deep teal action, sparing champagne, serif figures
+  (Fraunces) with an Instrument Sans interface; the mark stays in teal beside a
+  Fraunces "Jara" wordmark. `DESIGN.md` is the source.
 - Money direction is meaning, not decoration — a long-standing commitment in this
   codebase, not a style preference.
 
@@ -117,7 +118,7 @@ read-only affordability tool, so their answers cannot drift apart.
   affordability and the AI chat.
 - Jara's open-loop J appears in the shell, auth layout, SVG favicon, PNG app
   icons and ICO. Salo uses a separate conversational avatar.
-- Archivo is configured through `@nuxt/fonts` and self-hosted at build time.
+- Fraunces and Instrument Sans are configured through `@nuxt/fonts` and self-hosted at build time.
 - **Absences that must not be fabricated:** there are no users, no customers, no
   testimonials, no press, no pricing, no benchmarks, no funding, no partnerships,
   no bank or telco integrations, and no launch date. Six code comments cite a PRD

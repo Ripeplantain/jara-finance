@@ -1,8 +1,10 @@
 import { and, desc, eq, gte, lte, ne, sql } from 'drizzle-orm'
 import { addPesewas, assertSafePesewas, subtractPesewas } from '#shared/money/pesewas'
-import { resolvePeriod, type Period, type PeriodKind } from '#shared/period/month'
+import { resolvePeriod, todayInTimezone, type Period, type PeriodKind } from '#shared/period/month'
 import type { IsoDate } from '#shared/period/dates'
-import { categories, transactions } from '../database/schema'
+import { lastMonthsWindow } from '#shared/period/series'
+import type { DashboardRange } from '#shared/schemas/reports'
+import { categories, goalEntries, transactions } from '../database/schema'
 import type { Database } from '../types/database'
 import { getLiquidBalance } from './balances'
 
@@ -203,20 +205,64 @@ export async function getDailyFlow(
   }
 }
 
-/** Everything the dashboard needs, in one round trip. */
-export async function getDashboard(userId: string, timezone: string) {
-  const [liquid, totals, spending, flow] = await Promise.all([
+/**
+ * Money moved into goals inside a window: every contribution dated there,
+ * backed or tracked, which is the figure goal progress itself counts. Not a
+ * transaction total — a backed contribution's transfer is already excluded from
+ * income and spending above.
+ */
+export async function querySavedInPeriod(
+  db: Database,
+  userId: string,
+  period: Pick<Period, 'start' | 'end'>
+): Promise<number> {
+  const [row] = await db
+    .select({ saved: sql<string>`coalesce(sum(${goalEntries.amountPesewas}), 0)::text` })
+    .from(goalEntries)
+    .where(
+      and(
+        eq(goalEntries.userId, userId),
+        gte(goalEntries.occurredOn, period.start),
+        lte(goalEntries.occurredOn, period.end)
+      )
+    )
+  return toPesewas(row?.saved ?? '0', 'savedPesewas')
+}
+
+/**
+ * Everything the dashboard needs, in one round trip.
+ *
+ * `range` is additive: the default is this month, exactly as before. `last_6_months`
+ * totals six whole calendar months, but the category breakdown stays on the
+ * latest month — six months of categories would bury the one that moved.
+ */
+export async function getDashboard(
+  userId: string,
+  timezone: string,
+  range: DashboardRange = 'this_month'
+) {
+  const db = useDb()
+  const today = todayInTimezone(timezone)
+  const totalsPeriod: Period = range === 'last_6_months'
+    ? resolvePeriod({ kind: 'custom', ...lastMonthsWindow(today, 6) }, timezone)
+    : resolvePeriod({ kind: range }, timezone)
+  const monthKind: PeriodKind = range === 'last_month' ? 'last_month' : 'this_month'
+
+  const [liquid, totals, spending, flow, saved] = await Promise.all([
     getLiquidBalance(userId),
-    getPeriodTotals(userId, timezone),
-    getSpendingByCategory(userId, timezone),
-    getDailyFlow(userId, timezone)
+    queryPeriodTotals(db, userId, totalsPeriod),
+    getSpendingByCategory(userId, timezone, monthKind),
+    getDailyFlow(userId, timezone, monthKind),
+    querySavedInPeriod(db, userId, totalsPeriod)
   ])
 
   return {
+    range,
     liquidPesewas: liquid.liquidPesewas,
     currency: liquid.currency,
     accounts: liquid.accounts,
     totals,
+    savedPesewas: saved,
     spending,
     flow: flow.days
   }
