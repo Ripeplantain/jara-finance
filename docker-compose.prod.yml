@@ -1,0 +1,51 @@
+# Production overlay. Run with the base file, which defines Postgres and its volume:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait app
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tools run --rm --build migrate
+#
+# Secrets come from a server-only .env beside this file (see .env.example). The
+# app reads them as NUXT_* at runtime, so nothing secret is baked into the image.
+
+services:
+  postgres:
+    # Never publish Postgres on the host; only the app reaches it, over the
+    # compose network.
+    ports: !reset []
+    environment:
+      POSTGRES_USER: salo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: salo
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgres://salo:${POSTGRES_PASSWORD}@postgres:5432/salo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: [tools]
+
+  app:
+    build:
+      context: .
+      target: prod
+    image: jara-finance:prod
+    restart: unless-stopped
+    environment:
+      NUXT_DATABASE_URL: postgres://salo:${POSTGRES_PASSWORD}@postgres:5432/salo
+      NUXT_BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      NUXT_BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env}
+      NUXT_AI_PROVIDER: ${AI_PROVIDER:-openrouter}
+      NUXT_AI_MODEL: ${AI_MODEL:-}
+      NUXT_OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      NUXT_ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NUXT_OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      NUXT_AI_DAILY_MESSAGE_LIMIT: ${AI_DAILY_MESSAGE_LIMIT:-25}
+    # Loopback only: the reverse proxy is the public door. 3000 is jara-pm's.
+    ports:
+      - "127.0.0.1:3100:3100"
+    depends_on:
+      postgres:
+        condition: service_healthy
