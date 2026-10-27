@@ -393,3 +393,28 @@ test.describe('confirmations', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 })
+
+test.describe('adding a goal', () => {
+  test('is one click from Budgets, even once a goal exists', async ({ page }) => {
+    await signUp(page)
+    await completeOnboarding(page)
+    await addAccount(page, 'E2E Goal Entry', '1000')
+
+    await gotoReady(page, '/budgets')
+    await page.getByRole('link', { name: 'Add goal' }).click()
+    await expect(page).toHaveURL(/\/goals/)
+    const sheet = page.getByRole('dialog', { name: 'New goal' })
+    await expect(sheet).toBeVisible()
+    // The one-shot flag is dropped so a refresh does not reopen the sheet.
+    await expect(page).not.toHaveURL(/new=1/)
+    await sheet.getByLabel('What for?').fill('First goal')
+    await sheet.getByLabel('Target amount').fill('1000')
+    await sheet.getByRole('button', { name: 'Create goal' }).click()
+    await expect(page.getByText('First goal')).toBeVisible()
+
+    // With a goal in place the button is still there, not only in the empty state.
+    await gotoReady(page, '/budgets')
+    await expect(page.getByRole('link', { name: 'Add goal' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Manage goals' })).toBeVisible()
+  })
+})

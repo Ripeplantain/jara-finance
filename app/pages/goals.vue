@@ -17,6 +17,19 @@ const goals = computed(() => goalData.value?.goals ?? [])
 
 // --- Creating a goal -------------------------------------------------------
 const creating = ref(false)
+
+// `/goals?new=1` is how Home and Budgets send someone straight to the new-goal
+// sheet. Opened after mount (the sheet needs the browser) and then dropped from
+// the URL so a refresh or the back button does not reopen it.
+const route = useRoute()
+const router = useRouter()
+onMounted(() => {
+  if (route.query.new === '1') {
+    creating.value = true
+    router.replace({ query: { ...route.query, new: undefined } })
+  }
+})
+
 const name = ref('')
 const target = ref('')
 const targetDate = ref('')
