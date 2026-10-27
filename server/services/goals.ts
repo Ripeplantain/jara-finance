@@ -2,6 +2,7 @@ import { and, asc, eq, isNotNull, sql } from 'drizzle-orm'
 import type {
   ContributeToGoalInput,
   CreateGoalInput,
+  UpdateGoalEntryInput,
   UpdateGoalInput
 } from '#shared/schemas/goals'
 import { addPesewas, assertSafePesewas, dividePesewas, sumPesewas } from '#shared/money/pesewas'
@@ -13,10 +14,10 @@ import {
   todayInTimezone,
   type IsoDate
 } from '#shared/period/month'
-import { financialAccounts, goalEntries, goals } from '../database/schema'
+import { financialAccounts, goalEntries, goals, transactions } from '../database/schema'
 import type { Database, DatabaseTransaction } from '../types/database'
 import { assertOwnedAccount } from './accounts'
-import { createTransfer } from './transactions'
+import { createTransfer, updateTransferPair } from './transactions'
 
 /**
  * Savings goals and their contributions.
@@ -151,24 +152,52 @@ export async function queryGoals(
   })
 }
 
-export async function createGoal(userId: string, input: CreateGoalInput) {
-  const db = useDb()
+export async function createGoal(
+  userId: string,
+  timezone: string,
+  input: CreateGoalInput
+) {
+  return insertGoal(useDb(), userId, timezone, input)
+}
+
+/** `createGoal` with the database passed in, so it can run against a test database. */
+export async function insertGoal(
+  db: Database,
+  userId: string,
+  timezone: string,
+  input: CreateGoalInput
+) {
   if (input.accountId) {
     await assertOwnedAccount(db, userId, input.accountId, 'savings account')
   }
 
-  const [goal] = await db
-    .insert(goals)
-    .values({
-      userId,
-      name: input.name,
-      targetPesewas: input.target,
-      targetDate: input.targetDate,
-      accountId: input.accountId
-    })
-    .returning()
+  return db.transaction(async (tx) => {
+    const [goal] = await tx
+      .insert(goals)
+      .values({
+        userId,
+        name: input.name,
+        targetPesewas: input.target,
+        targetDate: input.targetDate,
+        accountId: input.accountId
+      })
+      .returning()
 
-  return goal
+    // What is already put aside is a tracked contribution: it states how much
+    // there is without claiming any money moved, and it is written with the goal
+    // so a goal can never exist without the amount it was created with.
+    if (input.alreadySaved !== null) {
+      await tx.insert(goalEntries).values({
+        userId,
+        goalId: goal!.id,
+        amountPesewas: input.alreadySaved,
+        occurredOn: todayInTimezone(timezone),
+        note: 'Already saved'
+      })
+    }
+
+    return goal!
+  })
 }
 
 export async function updateGoal(userId: string, goalId: string, input: UpdateGoalInput) {
@@ -287,6 +316,63 @@ export async function deleteGoalEntry(userId: string, entryId: string) {
   return { deleted: true }
 }
 
+/**
+ * Edits one contribution.
+ *
+ * A tracked entry is a single row. A backed entry is a real transfer, so the
+ * amount, date and note are written to **both** legs of the pair in the same
+ * database transaction as the entry itself: the ledger, the balances and the
+ * goal's progress can never disagree about it.
+ */
+export async function updateGoalEntry(
+  userId: string,
+  entryId: string,
+  input: UpdateGoalEntryInput
+) {
+  return applyGoalEntryUpdate(useDb(), userId, entryId, input)
+}
+
+/** `updateGoalEntry` with the database passed in, so it can run against a test database. */
+export async function applyGoalEntryUpdate(
+  db: Database,
+  userId: string,
+  entryId: string,
+  input: UpdateGoalEntryInput
+) {
+  return db.transaction(async (tx) => {
+    const [entry] = await tx
+      .select({ id: goalEntries.id, linkedTransactionId: goalEntries.linkedTransactionId })
+      .from(goalEntries)
+      .where(and(eq(goalEntries.id, entryId), eq(goalEntries.userId, userId)))
+      .limit(1)
+
+    if (!entry) {
+      throw createError({ statusCode: 404, statusMessage: 'Contribution not found' })
+    }
+
+    if (entry.linkedTransactionId) {
+      await updateTransferPair(tx, userId, entry.linkedTransactionId, {
+        amount: input.amount,
+        occurredOn: input.occurredOn,
+        note: input.note
+      })
+    }
+
+    const [row] = await tx
+      .update(goalEntries)
+      .set({
+        ...(input.amount !== undefined && { amountPesewas: input.amount }),
+        ...(input.occurredOn !== undefined && { occurredOn: input.occurredOn }),
+        ...(input.note !== undefined && { note: input.note }),
+        updatedAt: new Date()
+      })
+      .where(and(eq(goalEntries.id, entryId), eq(goalEntries.userId, userId)))
+      .returning()
+
+    return row!
+  })
+}
+
 /** A goal's contributions, newest first. */
 export async function listGoalEntries(userId: string, goalId: string) {
   const db = useDb()
@@ -297,12 +383,30 @@ export async function listGoalEntries(userId: string, goalId: string) {
       id: goalEntries.id,
       amountPesewas: goalEntries.amountPesewas,
       occurredOn: goalEntries.occurredOn,
-      note: goalEntries.note,
+      // A backed entry keeps its note on the transfer, so fall back to that.
+      note: sql<string | null>`coalesce(${goalEntries.note}, ${transactions.note})`,
       linkedTransactionId: goalEntries.linkedTransactionId
     })
     .from(goalEntries)
+    .leftJoin(
+      transactions,
+      and(eq(transactions.id, goalEntries.linkedTransactionId), eq(transactions.userId, userId))
+    )
     .where(and(eq(goalEntries.goalId, goalId), eq(goalEntries.userId, userId)))
     .orderBy(sql`${goalEntries.occurredOn} desc`, sql`${goalEntries.createdAt} desc`)
+}
+
+/** One goal with its progress and contributions: the goal page in a single read. */
+export async function getGoalDetail(userId: string, timezone: string, goalId: string) {
+  const [all, entries] = await Promise.all([
+    listGoals(userId, timezone),
+    listGoalEntries(userId, goalId)
+  ])
+  const goal = all.find(candidate => candidate.id === goalId)
+  if (!goal) {
+    throw createError({ statusCode: 404, statusMessage: 'Goal not found' })
+  }
+  return { goal, entries }
 }
 
 /** Total real money committed to active goals — the `committed` affordability term. */

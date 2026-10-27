@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { amountSchema, periodQuerySchema, positiveAmountSchema } from '#shared/schemas/common'
 import { createTransferSchema } from '#shared/schemas/transactions'
-import { contributeToGoalSchema } from '#shared/schemas/goals'
+import {
+  contributeToGoalSchema,
+  createGoalSchema,
+  moveGoalEntrySchema,
+  updateGoalEntrySchema
+} from '#shared/schemas/goals'
 import { upsertBudgetSchema } from '#shared/schemas/budgets'
 import { dashboardQuerySchema, monthAnchorQuerySchema } from '#shared/schemas/reports'
 import { addMonths, startOfMonth } from '#shared/period/month'
@@ -188,5 +193,49 @@ describe('month stepping', () => {
     expect(addMonths('2026-01-01', -1)).toBe('2025-12-01')
     expect(addMonths('2026-12-01', 1)).toBe('2027-01-01')
     expect(startOfMonth('2026-05-17')).toBe('2026-05-01')
+  })
+})
+
+describe('createGoalSchema', () => {
+  it('has no starting amount unless one is given', () => {
+    const parsed = createGoalSchema.parse({ name: 'Laptop', target: '5000' })
+    expect(parsed.alreadySaved).toBeNull()
+  })
+
+  it('reads an already-saved amount as integer pesewas', () => {
+    const parsed = createGoalSchema.parse({ name: 'Laptop', target: '5000', alreadySaved: '1,200.50' })
+    expect(parsed.alreadySaved).toBe(120_050)
+  })
+
+  it('rejects a zero or negative already-saved amount', () => {
+    expect(createGoalSchema.safeParse({ name: 'Laptop', target: '5000', alreadySaved: '0' }).success).toBe(false)
+    expect(createGoalSchema.safeParse({ name: 'Laptop', target: '5000', alreadySaved: '-5' }).success).toBe(false)
+  })
+})
+
+describe('updateGoalEntrySchema', () => {
+  it('leaves the note alone when it is not sent', () => {
+    const parsed = updateGoalEntrySchema.parse({ amount: '40' })
+    expect(parsed).toEqual({ amount: 4_000 })
+    expect('note' in parsed).toBe(false)
+  })
+
+  it('clears the note only when it is sent empty', () => {
+    expect(updateGoalEntrySchema.parse({ note: '' })).toEqual({ note: null })
+  })
+
+  it('refuses an edit that changes nothing', () => {
+    expect(updateGoalEntrySchema.safeParse({}).success).toBe(false)
+  })
+
+  it('refuses a non-positive amount', () => {
+    expect(updateGoalEntrySchema.safeParse({ amount: '0' }).success).toBe(false)
+  })
+})
+
+describe('moveGoalEntrySchema', () => {
+  it('needs the account the money moves from', () => {
+    expect(moveGoalEntrySchema.safeParse({}).success).toBe(false)
+    expect(moveGoalEntrySchema.safeParse({ fromAccountId: 'not-a-uuid' }).success).toBe(false)
   })
 })
