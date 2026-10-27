@@ -381,17 +381,22 @@ const goals = computed(() => (goalData.value?.goals ?? []).filter(goal => goal.s
       <section class="v1-section" aria-labelledby="v1-goals">
         <div class="v1-section-head">
           <h2 id="v1-goals" class="v1-h2">Savings goals</h2>
-          <p v-if="goals.length > 0 && goalData?.totals" class="v1-small v1-num">
-            <MoneyAmount :pesewas="goalData.totals.savedPesewas" hide-zero-decimals /> saved of
-            <MoneyAmount :pesewas="goalData.totals.targetPesewas" hide-zero-decimals />
-          </p>
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px">
+            <p v-if="goals.length > 0 && goalData?.totals" class="v1-small v1-num">
+              <MoneyAmount :pesewas="goalData.totals.savedPesewas" hide-zero-decimals /> saved of
+              <MoneyAmount :pesewas="goalData.totals.targetPesewas" hide-zero-decimals />
+            </p>
+            <NuxtLink v-if="goals.length > 0" to="/goals" class="v1-link" style="margin-left: 0">Manage goals</NuxtLink>
+            <!-- Always here: the Goals page is not in the nav, so this is how people get to it. -->
+            <NuxtLink to="/goals?new=1" class="v1-pill is-quiet"><Plus :size="16" aria-hidden="true" /> Add goal</NuxtLink>
+          </div>
         </div>
         <p v-if="goalLoadError" class="status-strip status-strip-error" role="alert">
           Could not load your goals. Try refreshing the page.
         </p>
         <p v-else-if="goals.length === 0" class="v1-small">
           No savings goals yet.
-          <NuxtLink to="/goals" class="v1-link">Add a goal</NuxtLink>
+          A goal gives your spare money a job.
         </p>
         <ul v-else class="v1-goals">
           <li v-for="goal in goals" :key="goal.id" class="v1-goal">
@@ -534,6 +539,8 @@ const goals = computed(() => (goalData.value?.goals ?? []).filter(goal => goal.s
 }
 .v1-pill:hover { background: var(--v1-accent-ink); }
 .v1-pill:disabled { opacity: 0.6; cursor: default; }
+.v1-pill.is-quiet { background: transparent; color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.v1-pill.is-quiet:hover { background: var(--accent-soft); }
 
 .v1-section { margin-top: clamp(64px, 9vw, 112px); }
 .v1-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; }

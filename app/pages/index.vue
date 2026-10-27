@@ -327,11 +327,14 @@ onActivated(() => {
               <p class="j-track-cap j-num">
                 <span>Saved</span><span>Target {{ money(goalData.totals.targetPesewas) }}</span>
               </p>
-              <NuxtLink to="/budgets" class="j-link" style="margin-top: 14px">See each goal</NuxtLink>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 14px">
+                <NuxtLink to="/goals" class="j-link">See each goal</NuxtLink>
+                <NuxtLink to="/goals?new=1" class="j-link">Add a goal</NuxtLink>
+              </div>
             </template>
             <template v-else>
               <p class="j-sentence">You have not set a savings goal yet.</p>
-              <NuxtLink to="/budgets" class="j-link">Set a goal</NuxtLink>
+              <NuxtLink to="/goals?new=1" class="j-link">Set a goal</NuxtLink>
             </template>
           </div>
         </div>
