@@ -9,13 +9,13 @@ import {
   Settings,
   Wallet
 } from 'lucide-vue-next'
-import { SaloAvatar } from '#components'
 
 /**
- * Six destinations, in the order v1's shell reads them. The top bar shows all
- * six; the phone tab bar is v1's own four plus "More" (Afford, Salo, Settings),
- * because six labelled targets do not fit 390px at 44px each without clipping
- * "Transactions".
+ * Five destinations, in the order v1's shell reads them. The top bar shows all
+ * five; the phone tab bar is v1's own four plus "More" (Afford, Settings),
+ * because five labelled targets plus Add do not fit 390px at 44px each without
+ * clipping "Transactions". Salo is not a destination: it is the floating
+ * launcher below, on every page.
  */
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true, tab: true },
@@ -23,8 +23,7 @@ const navItems = [
   // Goals are managed on /goals but belong to the Budgets screen, as in v1.
   { to: '/budgets', label: 'Budgets', icon: Wallet, tab: true, also: ['/goals'] },
   { to: '/insights', label: 'Insights', icon: ChartLine, tab: true },
-  { to: '/afford', label: 'Afford', icon: Scale, tab: false },
-  { to: '/assistant', label: 'Salo', icon: SaloAvatar, tab: false }
+  { to: '/afford', label: 'Afford', icon: Scale, tab: false }
 ]
 const tabItems = navItems.filter(item => item.tab)
 const moreItems = [
@@ -70,6 +69,7 @@ watch(() => route.path, () => { moreOpen.value = false })
             <span class="j-pill-long">Add transaction</span>
             <span class="j-pill-short">Add</span>
           </button>
+          <ThemeMenu />
           <NuxtLink
             to="/settings"
             class="j-icon-link"
@@ -91,6 +91,7 @@ watch(() => route.path, () => { moreOpen.value = false })
         <button type="button" class="j-pill" aria-label="Add transaction" @click="openAdd()">
           <Plus :size="16" aria-hidden="true" /> Add
         </button>
+        <ThemeMenu />
         <NuxtLink
           to="/settings"
           class="j-icon-link"
@@ -149,6 +150,8 @@ watch(() => route.path, () => { moreOpen.value = false })
       </ul>
     </SideSheet>
 
+    <ConfirmDialog />
+    <SaloLauncher />
     <AddTransactionSheet />
   </div>
 </template>

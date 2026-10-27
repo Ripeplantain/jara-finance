@@ -13,7 +13,7 @@ function uniqueEmail(): string {
 }
 
 const PASSWORD = 'salo-e2e-password'
-const SIGNED_IN_ROUTES = ['/', '/transactions', '/budgets', '/goals', '/insights', '/afford', '/assistant', '/settings']
+const SIGNED_IN_ROUTES = ['/', '/transactions', '/budgets', '/goals', '/insights', '/afford', '/settings']
 
 /**
  * Navigate, then wait until Vue has hydrated.
@@ -38,7 +38,8 @@ async function signUp(page: Page): Promise<string> {
   await gotoReady(page, '/signup')
   await page.getByLabel('Name').fill('Ama E2E')
   await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(PASSWORD)
+  // Exact: the field's "Show password" toggle would otherwise match too.
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
 
   // A brand-new account has no profile, so the middleware sends them here.
@@ -94,7 +95,7 @@ test.describe('auth gate', () => {
   }) => {
     await gotoReady(page, '/login')
     await page.getByLabel('Email').fill('nobody@example.test')
-    await page.getByLabel('Password').fill('definitely-not-the-password')
+    await page.getByLabel('Password', { exact: true }).fill('definitely-not-the-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('alert')).toBeVisible()
     await expect(page).toHaveURL(/\/login/)
@@ -281,5 +282,71 @@ test.describe('every page renders for a signed-in user', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
       expect(errors).toEqual([])
     }
+  })
+})
+
+/** A month `offset` months from now: URL key, a mid-month date, and its heading. */
+function monthOffset(offset: number) {
+  const now = new Date()
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 15))
+  return {
+    key: date.toISOString().slice(0, 7),
+    date: date.toISOString().slice(0, 10),
+    heading: date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  }
+}
+
+test.describe('choosing the month', () => {
+  test('editing a transaction date moves it into that month', async ({ page }) => {
+    const previous = monthOffset(-1)
+    await signUp(page)
+    await completeOnboarding(page)
+    await addAccount(page, 'E2E Move Acct', '1000')
+    await addExpense(page, '50', 'Transport', 'Move Me')
+    await expect(page.getByText('Move Me')).toBeVisible()
+
+    await page.locator('.j-row', { hasText: 'Move Me' }).click()
+    const sheet = page.getByRole('dialog', { name: 'Transaction detail' })
+    await sheet.getByRole('button', { name: 'Edit', exact: true }).click()
+    await sheet.getByLabel('Date').fill(previous.date)
+    await expect(sheet.getByText(/This moves it to/)).toBeVisible()
+    await sheet.getByRole('button', { name: 'Save changes' }).click()
+
+    // The row now sits under last month's heading.
+    await expect(page.getByRole('heading', { name: previous.heading })).toBeVisible()
+    await expect(page.locator('.j-row', { hasText: 'Move Me' })).toBeVisible()
+  })
+
+  test('steps the dashboard to the previous month and back', async ({ page }) => {
+    const previous = monthOffset(-1)
+    await signUp(page)
+    await completeOnboarding(page)
+
+    await gotoReady(page, '/')
+    await page.getByRole('button', { name: 'Previous month' }).click()
+    await expect(page.locator('.j-month-name')).toHaveText(previous.heading)
+    await expect(page).toHaveURL(new RegExp(`month=${previous.key}`))
+    // Nothing is recorded yet, but the page still renders for a past month.
+    await expect(page.getByRole('heading', { name: 'Income and spending' }).or(page.getByText('Add an account to start tracking your money'))).toBeVisible()
+
+    await page.getByRole('button', { name: 'Back to this month' }).click()
+    await expect(page).not.toHaveURL(/month=/)
+  })
+
+  test('copies last month\'s limits into an empty month on the budgets page', async ({ page }) => {
+    const previous = monthOffset(-1)
+    await signUp(page)
+    await completeOnboarding(page)
+
+    await gotoReady(page, `/budgets?month=${previous.key}`)
+    await page.getByRole('button', { name: 'Set limits' }).first().click()
+    await page.getByLabel('Transport', { exact: true }).fill('300')
+    await page.getByRole('button', { name: 'Save budget' }).click()
+    await expect(page.getByText('Transport').first()).toBeVisible()
+
+    await page.getByRole('button', { name: 'Next month' }).click()
+    await expect(page.getByText('No budget for this month yet')).toBeVisible()
+    await page.getByRole('button', { name: /^Copy .* limits$/ }).click()
+    await expect(page.getByLabel('Transport', { exact: true })).toHaveValue('300.00')
   })
 })

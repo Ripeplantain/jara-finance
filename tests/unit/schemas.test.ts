@@ -3,6 +3,8 @@ import { amountSchema, periodQuerySchema, positiveAmountSchema } from '#shared/s
 import { createTransferSchema } from '#shared/schemas/transactions'
 import { contributeToGoalSchema } from '#shared/schemas/goals'
 import { upsertBudgetSchema } from '#shared/schemas/budgets'
+import { dashboardQuerySchema, monthAnchorQuerySchema } from '#shared/schemas/reports'
+import { addMonths, startOfMonth } from '#shared/period/month'
 
 /**
  * The validation boundary.
@@ -155,5 +157,36 @@ describe('periodQuerySchema', () => {
         end: '2026-10-31'
       }).success
     ).toBe(true)
+  })
+})
+
+describe('dashboardQuerySchema', () => {
+  it('defaults to this month with no month chosen, so existing callers are unchanged', () => {
+    expect(dashboardQuerySchema.parse({})).toEqual({ range: 'this_month' })
+  })
+
+  it('accepts a month to report on', () => {
+    expect(dashboardQuerySchema.parse({ range: 'last_6_months', month: '2026-03-01' }))
+      .toEqual({ range: 'last_6_months', month: '2026-03-01' })
+  })
+
+  it('rejects a month that is not a date', () => {
+    expect(dashboardQuerySchema.safeParse({ month: '2026-13-01' }).success).toBe(false)
+    expect(dashboardQuerySchema.safeParse({ month: 'March' }).success).toBe(false)
+  })
+})
+
+describe('monthAnchorQuerySchema', () => {
+  it('treats the month as optional', () => {
+    expect(monthAnchorQuerySchema.parse({})).toEqual({})
+    expect(monthAnchorQuerySchema.parse({ month: '2026-03-01' })).toEqual({ month: '2026-03-01' })
+  })
+})
+
+describe('month stepping', () => {
+  it('steps whole months across a year boundary from the 1st', () => {
+    expect(addMonths('2026-01-01', -1)).toBe('2025-12-01')
+    expect(addMonths('2026-12-01', 1)).toBe('2027-01-01')
+    expect(startOfMonth('2026-05-17')).toBe('2026-05-01')
   })
 })

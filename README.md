@@ -5,7 +5,7 @@ An AI-powered personal finance coach for Ghana. Track income and expenses across
 > **Know where your money goes, what you can afford, and what to do next.**
 
 **Jara** is the app — shortened from Jara Finance everywhere in the interface.
-**Salo** is the AI coach inside it: the `/assistant` screen, the system prompt
+**Salo** is the AI coach inside it: the floating launcher and panel on every page, the system prompt
 and everything under `server/ai/`. The two names are not interchangeable.
 
 ## Requirements

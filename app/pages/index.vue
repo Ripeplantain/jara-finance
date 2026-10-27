@@ -11,19 +11,19 @@ useHead({ title: 'Dashboard — Jara' })
 const { profile, timezone } = useCurrentUser()
 const { open: openAdd } = useAddTransaction()
 
-const ranges: Array<{ key: DashboardRange, label: string }> = [
-  { key: 'this_month', label: 'This month' },
-  { key: 'last_month', label: 'Last month' },
-  { key: 'last_6_months', label: 'Last 6 months' }
-]
-const range = ref<DashboardRange>('this_month')
+// Which month the figures are about, kept in the URL. Dashboards only report
+// what has happened, so the current month is the furthest forward.
+const { month, currentMonth } = useSelectedMonth()
+// "Last 6 months" widens the totals to the six months ending with `month`.
+const sixMonths = ref(false)
+const range = computed<DashboardRange>(() => sixMonths.value ? 'last_6_months' : 'this_month')
 
 const {
   data: dashboard,
   refresh,
   status: dashboardStatus,
   error: dashboardError
-} = await useFetch('/api/dashboard', { query: { range } })
+} = await useFetch('/api/dashboard', { query: { range, month } })
 const { data: insightData, refresh: refreshInsights } = await useFetch('/api/insights')
 // The headroom figure, from the same endpoint the Afford screen and the AI
 // coach both use, so the number here cannot disagree with either of them.
@@ -32,8 +32,8 @@ const {
   refresh: refreshHeadroom,
   error: headroomError
 } = await useFetch('/api/affordability')
-const { data: monthly, refresh: refreshMonthly } = await useFetch('/api/trends/monthly')
-const { data: budget, refresh: refreshBudget } = await useFetch('/api/budgets')
+const { data: monthly, refresh: refreshMonthly } = await useFetch('/api/trends/monthly', { query: { month } })
+const { data: budget, refresh: refreshBudget } = await useFetch('/api/budgets', { query: { month } })
 const { data: goalData, refresh: refreshGoals } = await useFetch('/api/goals')
 // The newest few rows from the ordinary ledger endpoint, across all time so a
 // quiet month still shows what happened last.
@@ -66,9 +66,9 @@ const categories = computed(() => {
 
 const series = computed(() => monthly.value?.months ?? [])
 const active = ref<number | null>(null)
+// The series always ends with the chosen month, so a single month is its last point.
 watch([range, series], () => {
-  const last = series.value.length - 1
-  active.value = range.value === 'this_month' ? last : range.value === 'last_month' ? last - 1 : null
+  active.value = range.value === 'this_month' ? series.value.length - 1 : null
 }, { immediate: true })
 
 const chartLabels = computed(() => series.value.map(point => point.label))
@@ -88,7 +88,12 @@ const chartSummary = computed(() => {
 })
 
 // The month the figures and the breakdown speak about, named from the server's period.
-const monthWord = computed(() => formatMonthName(dashboard.value?.spending.period.start ?? today.value))
+const monthWord = computed(() => {
+  const start = dashboard.value?.spending.period.start ?? today.value
+  // The year only earns its place once the month is not in the current one.
+  return start.slice(0, 4) === today.value.slice(0, 4) ? formatMonthName(start) : formatMonthHeading(start)
+})
+const viewingPast = computed(() => month.value !== currentMonth.value)
 const rangeWord = computed(() => range.value === 'last_6_months' ? 'over six months' : `in ${monthWord.value}`)
 
 /** The most severe undismissed insight; the server already orders them. */
@@ -132,19 +137,16 @@ onActivated(() => {
     <section aria-labelledby="home-hero">
       <div class="j-section-head" style="margin-bottom: 8px">
         <p class="j-eyebrow">{{ profile?.displayName }} · {{ formatWeekdayDate(today) }}</p>
-        <div class="j-toggles" role="group" aria-label="Date range">
-          <button
-            v-for="item in ranges"
-            :key="item.key"
-            type="button"
-            class="j-toggle"
-            :aria-pressed="range === item.key"
-            @click="range = item.key"
-          >
-            {{ item.label }}
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px 20px">
+          <MonthSwitcher v-model="month" :max="currentMonth" :current="currentMonth" />
+          <button type="button" class="j-toggle" :aria-pressed="sixMonths" @click="sixMonths = !sixMonths">
+            Last 6 months
           </button>
         </div>
       </div>
+      <p v-if="viewingPast" class="j-small" style="margin-bottom: 8px">
+        Available to spend is always as of today. The figures below are for {{ monthWord }}.
+      </p>
 
       <div v-if="dashboardStatus === 'pending' && !dashboard" aria-label="Loading dashboard">
         <h1 id="home-hero" class="j-eyebrow" style="color: var(--primary)">Available to spend</h1>

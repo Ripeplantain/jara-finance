@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeftRight, Minus, Plus } from 'lucide-vue-next'
+import { pesewasToAmountString } from '#shared/money/pesewas'
 import { ACCOUNT_TYPE_LABELS } from '#shared/schemas/accounts'
 import { toApiError } from '~/lib/errors'
 
@@ -22,20 +23,44 @@ const props = defineProps<{
    * asking them to retype the figure they were just looking at.
    */
   initialAmount?: string
+  /**
+   * Edits this saved income or expense instead of recording a new one. The
+   * type is fixed (a different type means a different kind of record, so that
+   * is delete and re-add) and transfers are not editable at all.
+   */
+  entry?: {
+    id: string
+    type: 'income' | 'expense'
+    accountId: string
+    categoryId: string | null
+    amountPesewas: number
+    occurredOn: string
+    merchant: string | null
+    note: string | null
+  }
 }>()
 
 const emit = defineEmits<{ saved: [] }>()
 
 type Mode = 'expense' | 'income' | 'transfer'
 
-const mode = ref<Mode>('expense')
-const amount = ref(props.initialAmount ?? '')
-const accountId = ref(props.accounts[0]?.accountId ?? '')
+const editing = computed(() => props.entry !== undefined)
+
+const mode = ref<Mode>(props.entry?.type ?? 'expense')
+const amount = ref(props.entry ? pesewasToAmountString(props.entry.amountPesewas) : (props.initialAmount ?? ''))
+const accountId = ref(props.entry?.accountId ?? props.accounts[0]?.accountId ?? '')
 const toAccountId = ref(props.accounts[1]?.accountId ?? '')
-const categoryId = ref('')
-const occurredOn = ref(props.today)
-const merchant = ref('')
-const note = ref('')
+const categoryId = ref(props.entry?.categoryId ?? '')
+const occurredOn = ref(props.entry?.occurredOn ?? props.today)
+const merchant = ref(props.entry?.merchant ?? '')
+const note = ref(props.entry?.note ?? '')
+
+// Changing the date can change the month, which changes every total it was in.
+const movesMonth = computed(() =>
+  props.entry !== undefined
+  && /^\d{4}-\d{2}-\d{2}$/.test(occurredOn.value)
+  && occurredOn.value.slice(0, 7) !== props.entry.occurredOn.slice(0, 7)
+)
 
 const pending = ref(false)
 const error = ref('')
@@ -74,6 +99,22 @@ async function submit() {
   pending.value = true
 
   try {
+    if (props.entry) {
+      await $fetch(`/api/transactions/${props.entry.id}`, {
+        method: 'PATCH',
+        body: {
+          accountId: accountId.value,
+          categoryId: categoryId.value || null,
+          amount: amount.value,
+          occurredOn: occurredOn.value,
+          merchant: merchant.value || null,
+          note: note.value || null
+        }
+      })
+      emit('saved')
+      return
+    }
+
     if (mode.value === 'transfer') {
       await $fetch('/api/transactions/transfer', {
         method: 'POST',
@@ -117,7 +158,7 @@ const selectClass = 'field-select'
 <template>
   <form class="flex flex-col gap-4" @submit.prevent="submit">
     <!-- Mode -->
-    <div class="grid grid-cols-3 gap-1 border border-border bg-muted p-1" role="group" aria-label="Transaction type">
+    <div v-if="!editing" class="grid grid-cols-3 gap-1 border border-border bg-muted p-1" role="group" aria-label="Transaction type">
       <button
         v-for="option in modes"
         :key="option.value"
@@ -181,6 +222,10 @@ const selectClass = 'field-select'
       <Label for="occurredOn">Date</Label>
       <Input id="occurredOn" v-model="occurredOn" type="date" required />
       <p v-if="fields.occurredOn" class="text-xs text-destructive">{{ fields.occurredOn }}</p>
+      <p v-else-if="movesMonth" class="text-xs text-muted-foreground">
+        This moves it to {{ formatMonthHeading(occurredOn) }}, and out of
+        {{ formatMonthHeading(entry!.occurredOn) }}'s totals and budget.
+      </p>
     </div>
 
     <div v-if="mode !== 'transfer'" class="flex flex-col gap-2">
@@ -196,7 +241,7 @@ const selectClass = 'field-select'
     <p v-if="error" class="status-strip status-strip-error" role="alert">{{ error }}</p>
 
     <Button type="submit" :disabled="pending || accounts.length === 0">
-      {{ pending ? 'Saving…' : 'Save' }}
+      {{ pending ? 'Saving…' : editing ? 'Save changes' : 'Save' }}
     </Button>
   </form>
 </template>

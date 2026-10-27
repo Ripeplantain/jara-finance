@@ -20,6 +20,7 @@ services:
     build:
       context: .
       target: migrate
+    image: jara-finance:migrate
     environment:
       DATABASE_URL: postgres://salo:${POSTGRES_PASSWORD}@postgres:5432/salo
     depends_on:

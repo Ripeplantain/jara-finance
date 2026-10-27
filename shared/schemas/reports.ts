@@ -5,8 +5,21 @@ import { isoDateSchema, uuidSchema } from './common'
 export const DASHBOARD_RANGES = ['this_month', 'last_month', 'last_6_months'] as const
 export type DashboardRange = (typeof DASHBOARD_RANGES)[number]
 
+/**
+ * Any date in the month to report on; the service normalises it to the whole
+ * month. Omitted, it is the current month in the user's timezone.
+ */
+export const monthAnchorQuerySchema = z.object({
+  month: isoDateSchema.optional()
+})
+
 export const dashboardQuerySchema = z.object({
-  range: z.enum(DASHBOARD_RANGES).default('this_month')
+  range: z.enum(DASHBOARD_RANGES).default('this_month'),
+  /**
+   * The month the figures are about. With `last_6_months` it is the *last* of
+   * the six, so stepping back a month slides the window back with it.
+   */
+  month: isoDateSchema.optional()
 })
 
 /** The same period vocabulary as the ledger list, so a month heading's totals match the rows under it. */
