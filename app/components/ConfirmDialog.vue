@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Archive, CircleCheck, LogOut, Trash2, TriangleAlert } from 'lucide-vue-next'
 import {
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -44,13 +43,20 @@ const icon = computed(() =>
           <AlertDialogCancel class="j-pill is-quiet" @click="settle(false)">
             {{ shown?.cancelLabel ?? 'Cancel' }}
           </AlertDialogCancel>
-          <AlertDialogAction
+          <!--
+            A plain button, not Reka's AlertDialogAction. The Action closes the
+            dialog itself, which fires `update:open(false)` above and settles the
+            promise as "cancelled" before this click handler can say "confirmed".
+            Closing here is done by `settle` clearing the state instead.
+          -->
+          <button
+            type="button"
             class="j-pill"
             :class="{ 'is-danger': shown?.tone === 'danger' }"
             @click="settle(true)"
           >
             {{ shown?.confirmLabel ?? 'Confirm' }}
-          </AlertDialogAction>
+          </button>
         </div>
       </AlertDialogContent>
     </AlertDialogPortal>
