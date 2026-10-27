@@ -195,8 +195,22 @@ jobs:
           docker rmi "$APP_IMAGE" "$MIGRATE_IMAGE" >/dev/null
 
           compose="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-          \$compose --profile tools run --rm migrate
-          \$compose up -d --wait app
+          # This script arrives on the SSH session's stdin, and compose run
+          # reads stdin too: left alone it swallows every line below it, so the
+          # app was never restarted while the job still ended green. -T drops
+          # the TTY and </dev/null leaves it nothing to read. No backticks in
+          # these comments: this heredoc is unquoted, so the runner would run them.
+          \$compose --profile tools run --rm -T migrate </dev/null
+          \$compose up -d --wait app </dev/null
+
+          # A successful up is not proof the new build is what is serving, and
+          # the health check below cannot tell old from new. Compare image IDs.
+          running=\$(docker inspect --format '{{.Image}}' "\$(\$compose ps -q app </dev/null)")
+          wanted=\$(docker image inspect --format '{{.Id}}' jara-finance:prod)
+          if [ "\$running" != "\$wanted" ]; then
+            echo "app is running \$running, expected \$wanted" >&2
+            exit 1
+          fi
           docker image prune -f >/dev/null
           EOF
       - name: Health check
