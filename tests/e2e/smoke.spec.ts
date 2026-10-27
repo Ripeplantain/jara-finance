@@ -418,3 +418,72 @@ test.describe('adding a goal', () => {
     await expect(page.getByRole('link', { name: 'Manage goals' })).toBeVisible()
   })
 })
+
+test.describe('a goal\'s page', () => {
+  test('edits the goal, fixes what is already inside, makes planned money real, and undoes it', async ({ page }) => {
+    await signUp(page)
+    await completeOnboarding(page)
+    await addAccount(page, 'E2E Pocket', '3000')
+    await addAccount(page, 'E2E Vault', '0')
+
+    await gotoReady(page, '/goals')
+    await page.getByRole('button', { name: 'New goal' }).click()
+    const form = page.getByRole('dialog', { name: 'New goal' })
+    await form.getByLabel('What for?').fill('Laptop')
+    await form.getByLabel('Target amount').fill('5000')
+    await form.getByLabel('Already saved (optional)').fill('500')
+    await form.getByLabel('Savings account (optional)').selectOption({ label: 'E2E Vault' })
+    await form.getByRole('button', { name: 'Create goal' }).click()
+
+    await page.getByRole('link', { name: 'Details and edit' }).click()
+    await expect(page).toHaveURL(/\/goals\/[0-9a-f-]{36}/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Laptop' })).toBeVisible()
+    await expect(page.locator('.j-gd-entry').first()).toContainText('Planned, not moved')
+    await expect(page.locator('.j-gd-saved')).toContainText('500')
+
+    // Edit the goal itself.
+    await page.getByRole('button', { name: 'Edit goal' }).click()
+    const edit = page.getByRole('dialog', { name: 'Edit goal' })
+    await edit.getByLabel('What for?').fill('Work laptop')
+    await edit.getByLabel('Target amount').fill('6000')
+    await edit.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Work laptop' })).toBeVisible()
+    await expect(page.getByText('GH₵6,000').first()).toBeVisible()
+
+    // Fix what is already inside.
+    await page.locator('.j-gd-entry').first().click()
+    const entry = page.getByRole('dialog', { name: 'Edit contribution' })
+    await entry.getByLabel('Amount', { exact: true }).fill('750')
+    await entry.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.locator('.j-gd-saved')).toContainText('750')
+
+    // Make the planned money real: it becomes a transfer, not a second contribution.
+    await page.locator('.j-gd-entry').first().click()
+    await entry.getByLabel('From which account?').selectOption({ label: 'E2E Pocket' })
+    await entry.getByRole('button', { name: 'Move the money now' }).click()
+    await page.getByRole('alertdialog', { name: 'Move this money now?' })
+      .getByRole('button', { name: 'Move the money' }).click()
+    await expect(page.locator('.j-gd-entry')).toHaveCount(1)
+    await expect(page.locator('.j-gd-entry').first()).toContainText('Moved to savings')
+    await expect(page.locator('.j-gd-saved')).toContainText('750')
+
+    await gotoReady(page, '/settings')
+    const pocket = page.getByRole('listitem').filter({ hasText: 'E2E Pocket' })
+    const vault = page.getByRole('listitem').filter({ hasText: 'E2E Vault' })
+    await expect(pocket.getByText('GH₵2,250.00', { exact: true })).toBeVisible()
+    await expect(vault.getByText('GH₵750.00', { exact: true })).toBeVisible()
+
+    // Deleting a real contribution removes the transfer and puts the money back.
+    await page.goto('/goals')
+    await page.getByRole('link', { name: 'Details and edit' }).click()
+    await page.locator('.j-gd-entry').first().click()
+    await entry.getByRole('button', { name: 'Delete this contribution' }).click()
+    await page.getByRole('alertdialog', { name: 'Delete this contribution?' })
+      .getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(page.getByText('Nothing has gone into this goal yet.')).toBeVisible()
+
+    await gotoReady(page, '/settings')
+    await expect(page.getByRole('listitem').filter({ hasText: 'E2E Pocket' }).getByText('GH₵3,000.00', { exact: true })).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: 'E2E Vault' }).getByText('GH₵0.00', { exact: true })).toBeVisible()
+  })
+})

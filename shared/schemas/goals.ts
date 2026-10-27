@@ -17,7 +17,12 @@ export const createGoalSchema = z.object({
   // there is no suggested monthly contribution and the UI says so.
   targetDate: isoDateSchema.nullish().transform(value => value ?? null),
   /** The savings account backing contributions land in. */
-  accountId: uuidSchema.nullish().transform(value => value ?? null)
+  accountId: uuidSchema.nullish().transform(value => value ?? null),
+  /**
+   * What is already put aside for this goal. Recorded as a tracked contribution
+   * dated today: it says how much there is, never that money moved.
+   */
+  alreadySaved: positiveAmountSchema.nullish().transform(value => value ?? null)
 })
 
 export const updateGoalSchema = z
@@ -53,6 +58,26 @@ export const contributeToGoalSchema = z
     { message: 'Choose the account the money moves from', path: ['fromAccountId'] }
   )
 
+/**
+ * Edits one contribution. Missing fields are left alone, which is why the note
+ * is `.optional()` on top of `optionalTextSchema`, which on its own turns a
+ * missing value into null and would clear the note on every edit.
+ */
+export const updateGoalEntrySchema = z
+  .object({
+    amount: positiveAmountSchema.optional(),
+    occurredOn: isoDateSchema.optional(),
+    note: optionalTextSchema(280).optional()
+  })
+  .refine(value => Object.keys(value).length > 0, 'Nothing to update')
+
+/** Turns a tracked contribution into a real transfer from this account. */
+export const moveGoalEntrySchema = z.object({
+  fromAccountId: uuidSchema
+})
+
 export type CreateGoalInput = z.infer<typeof createGoalSchema>
 export type UpdateGoalInput = z.infer<typeof updateGoalSchema>
+export type UpdateGoalEntryInput = z.infer<typeof updateGoalEntrySchema>
+export type MoveGoalEntryInput = z.infer<typeof moveGoalEntrySchema>
 export type ContributeToGoalInput = z.infer<typeof contributeToGoalSchema>

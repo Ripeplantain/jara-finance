@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm'
 import type {
   CreateEntryInput,
   CreateTransferInput,
@@ -213,6 +213,177 @@ export async function createTransfer(userId: string, input: CreateTransferInput)
       // The link points at the `in` leg — the row landing in savings.
       const inLeg = legs.find(leg => leg.transferDirection === 'in')!
       await linkTransferToGoal(tx, userId, input.goalId, inLeg, input.amount, input.occurredOn)
+    }
+
+    return { transferGroupId, legs }
+  })
+}
+
+/**
+ * Edits both legs of a transfer together, inside the caller's transaction.
+ *
+ * Takes the `in` leg's id (what a backed goal entry links to) and rewrites every
+ * row sharing its `transferGroupId`, so the pair can never disagree about the
+ * amount, the date or the note.
+ */
+export async function updateTransferPair(
+  tx: DatabaseTransaction,
+  userId: string,
+  inLegId: string,
+  patch: { amount?: number, occurredOn?: string, note?: string | null }
+) {
+  const [leg] = await tx
+    .select({ transferGroupId: transactions.transferGroupId })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.id, inLegId),
+        eq(transactions.userId, userId),
+        eq(transactions.type, 'transfer')
+      )
+    )
+    .limit(1)
+
+  if (!leg?.transferGroupId) {
+    throw createError({ statusCode: 404, statusMessage: 'That transfer no longer exists' })
+  }
+
+  await tx
+    .update(transactions)
+    .set({
+      ...(patch.amount !== undefined && { amountPesewas: patch.amount }),
+      ...(patch.occurredOn !== undefined && { occurredOn: patch.occurredOn }),
+      ...(patch.note !== undefined && { note: patch.note }),
+      updatedAt: new Date()
+    })
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        eq(transactions.transferGroupId, leg.transferGroupId)
+      )
+    )
+}
+
+/**
+ * Turns a tracked goal contribution into a real transfer: writes the pair from
+ * `fromAccountId` into the goal's savings account and links the existing entry
+ * to it, in one database transaction.
+ *
+ * The entry is adopted rather than recreated, so its date, amount and history
+ * are untouched and it can never be counted twice. The update is guarded on the
+ * entry still being tracked, so two concurrent moves cannot both succeed.
+ */
+export async function moveTrackedEntryIntoTransfer(
+  userId: string,
+  entryId: string,
+  fromAccountId: string
+) {
+  return moveEntryIntoTransfer(useDb(), userId, entryId, fromAccountId)
+}
+
+/** `moveTrackedEntryIntoTransfer` with the database passed in, so it can run against a test database. */
+export async function moveEntryIntoTransfer(
+  db: Database,
+  userId: string,
+  entryId: string,
+  fromAccountId: string
+) {
+  const [entry] = await db
+    .select({
+      id: goalEntries.id,
+      goalId: goalEntries.goalId,
+      amountPesewas: goalEntries.amountPesewas,
+      occurredOn: goalEntries.occurredOn,
+      note: goalEntries.note,
+      linkedTransactionId: goalEntries.linkedTransactionId
+    })
+    .from(goalEntries)
+    .where(and(eq(goalEntries.id, entryId), eq(goalEntries.userId, userId)))
+    .limit(1)
+
+  if (!entry) {
+    throw createError({ statusCode: 404, statusMessage: 'Contribution not found' })
+  }
+  if (entry.linkedTransactionId) {
+    throw createError({ statusCode: 409, statusMessage: 'This money has already been moved' })
+  }
+
+  const [goal] = await db
+    .select({ id: goals.id, name: goals.name, accountId: goals.accountId })
+    .from(goals)
+    .where(and(eq(goals.id, entry.goalId), eq(goals.userId, userId)))
+    .limit(1)
+
+  if (!goal) {
+    throw createError({ statusCode: 404, statusMessage: 'That goal does not exist' })
+  }
+  if (!goal.accountId) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Give this goal a savings account before moving money into it'
+    })
+  }
+  if (goal.accountId === fromAccountId) {
+    throw createError({ statusCode: 409, statusMessage: 'Choose two different accounts' })
+  }
+
+  const [from, to] = await Promise.all([
+    assertOwnedAccount(db, userId, fromAccountId, 'source account'),
+    assertOwnedAccount(db, userId, goal.accountId, 'savings account')
+  ])
+  if (from.currency !== to.currency) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Transfers between different currencies are not supported yet'
+    })
+  }
+
+  const transferGroupId = randomUUID()
+  const note = entry.note ?? `Towards ${goal.name}`
+
+  return db.transaction(async (tx) => {
+    const legs = await tx
+      .insert(transactions)
+      .values([
+        {
+          userId,
+          accountId: fromAccountId,
+          type: 'transfer' as const,
+          transferDirection: 'out' as const,
+          transferGroupId,
+          amountPesewas: entry.amountPesewas,
+          occurredOn: entry.occurredOn,
+          note
+        },
+        {
+          userId,
+          accountId: goal.accountId!,
+          type: 'transfer' as const,
+          transferDirection: 'in' as const,
+          transferGroupId,
+          amountPesewas: entry.amountPesewas,
+          occurredOn: entry.occurredOn,
+          note
+        }
+      ])
+      .returning()
+
+    const inLeg = legs.find(leg => leg.transferDirection === 'in')!
+    const linked = await tx
+      .update(goalEntries)
+      .set({ linkedTransactionId: inLeg.id, updatedAt: new Date() })
+      .where(
+        and(
+          eq(goalEntries.id, entry.id),
+          eq(goalEntries.userId, userId),
+          isNull(goalEntries.linkedTransactionId)
+        )
+      )
+      .returning({ id: goalEntries.id })
+
+    // Someone else moved it between the read above and here: roll everything back.
+    if (linked.length === 0) {
+      throw createError({ statusCode: 409, statusMessage: 'This money has already been moved' })
     }
 
     return { transferGroupId, legs }
