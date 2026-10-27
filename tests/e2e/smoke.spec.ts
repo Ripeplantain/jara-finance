@@ -38,7 +38,8 @@ async function signUp(page: Page): Promise<string> {
   await gotoReady(page, '/signup')
   await page.getByLabel('Name').fill('Ama E2E')
   await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(PASSWORD)
+  // Exact: the field's "Show password" toggle would otherwise match too.
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
 
   // A brand-new account has no profile, so the middleware sends them here.
@@ -94,7 +95,7 @@ test.describe('auth gate', () => {
   }) => {
     await gotoReady(page, '/login')
     await page.getByLabel('Email').fill('nobody@example.test')
-    await page.getByLabel('Password').fill('definitely-not-the-password')
+    await page.getByLabel('Password', { exact: true }).fill('definitely-not-the-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('alert')).toBeVisible()
     await expect(page).toHaveURL(/\/login/)
