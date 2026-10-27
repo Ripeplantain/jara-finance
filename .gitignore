@@ -34,3 +34,6 @@ CLAUDE.md
 coverage
 playwright-report
 test-results
+
+# pnpm content store (local)
+.pnpm-store
