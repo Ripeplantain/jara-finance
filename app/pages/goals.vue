@@ -128,7 +128,8 @@ async function markAchieved(goalId: string, name: string) {
   if (!await confirm({
     title: `Mark ${name} as achieved?`,
     description: 'It will move out of your active goals and stop taking contributions.',
-    confirmLabel: 'Mark achieved'
+    confirmLabel: 'Mark achieved',
+    icon: 'check'
   })) return
   await $fetch(`/api/goals/${goalId}`, { method: 'PATCH', body: { status: 'achieved' } })
   await refresh()

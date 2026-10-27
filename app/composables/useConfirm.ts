@@ -5,6 +5,8 @@ export interface ConfirmOptions {
   cancelLabel?: string
   /** `danger` paints the confirm button in the destructive colour. */
   tone?: 'default' | 'danger'
+  /** A glyph for the badge above the title; a plain string so the state stays serialisable. */
+  icon?: 'trash' | 'logout' | 'archive' | 'check'
 }
 
 let resolver: ((confirmed: boolean) => void) | undefined

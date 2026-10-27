@@ -133,17 +133,48 @@
 .j-pill.is-danger { background: var(--destructive); color: var(--destructive-foreground); }
 .j-pill.is-danger:hover { background: color-mix(in srgb, var(--destructive) 86%, var(--foreground)); }
 
-/* Confirmation dialog. Above the side sheet (z 61) and the app-bar menus (z 70). */
-.j-confirm-scrim { z-index: 80; }
+/*
+ * Confirmation dialog. Sits above the side sheet (z 61), the Salo panel and the
+ * app-bar menus (z 70). The scrim selector is doubled because `.j-scrim` is
+ * defined further down and would otherwise win the z-index.
+ */
+.j-scrim.j-confirm-scrim { z-index: 80; background: rgb(29 42 39 / 42%); }
 .j-confirm {
   position: fixed; z-index: 81; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: min(420px, calc(100vw - 32px)); padding: 28px; border: 1px solid var(--line); border-radius: 18px;
-  background: var(--card); color: var(--foreground); box-shadow: 0 24px 56px -28px rgb(29 42 39 / 40%);
+  width: min(420px, calc(100vw - 32px)); padding: 28px 28px 24px; border: 1px solid var(--line); border-radius: 20px;
+  background: var(--card); color: var(--foreground); box-shadow: 0 32px 64px -24px rgb(29 42 39 / 45%);
 }
-.j-confirm-title { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 400; line-height: 1.2; }
+.j-confirm-icon {
+  display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 18px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--primary);
+}
+.j-confirm-icon.is-danger { background: color-mix(in srgb, var(--destructive) 13%, var(--card)); color: var(--destructive); }
+.j-confirm-title { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 400; line-height: 1.15; }
 .j-confirm-text { margin-top: 10px; font-size: 0.95rem; line-height: 1.55; color: var(--muted-foreground); }
-.j-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 24px; }
-.j-confirm-actions .j-pill { min-height: 44px; }
+.j-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 28px; }
+.j-confirm-actions .j-pill { min-height: 46px; padding: 0 24px; }
+.j-confirm[data-state='open'] { animation: j-confirm-in 0.18s ease-out; }
+.j-confirm[data-state='closed'] { animation: j-confirm-out 0.12s ease-in forwards; }
+.j-confirm-scrim[data-state='open'] { animation: j-fade-in 0.18s ease-out; }
+.j-confirm-scrim[data-state='closed'] { animation: j-fade-out 0.12s ease-in forwards; }
+@keyframes j-confirm-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.98); } }
+@keyframes j-confirm-out { to { opacity: 0; transform: translate(-50%, calc(-50% + 6px)) scale(0.98); } }
+@keyframes j-fade-in { from { opacity: 0; } }
+@keyframes j-fade-out { to { opacity: 0; } }
+/* Phones: a bottom sheet with the main action under the thumb. */
+@media (max-width: 560px) {
+  .j-confirm {
+    top: auto; bottom: 0; left: 0; right: 0; width: 100%; transform: none;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom)); border-width: 1px 0 0; border-radius: 22px 22px 0 0;
+  }
+  .j-confirm-actions { flex-direction: column-reverse; }
+  .j-confirm-actions .j-pill { width: 100%; }
+  @keyframes j-confirm-in { from { opacity: 0; transform: translateY(24px); } }
+  @keyframes j-confirm-out { to { opacity: 0; transform: translateY(16px); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .j-confirm, .j-confirm-scrim { animation: none !important; }
+}
 
 .j-main {
   max-width: calc(var(--j-col) + var(--j-gutter) * 2); margin: 0 auto;
