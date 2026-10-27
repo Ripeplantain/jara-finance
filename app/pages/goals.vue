@@ -122,7 +122,14 @@ async function contribute() {
   }
 }
 
-async function markAchieved(goalId: string) {
+const { confirm } = useConfirm()
+
+async function markAchieved(goalId: string, name: string) {
+  if (!await confirm({
+    title: `Mark ${name} as achieved?`,
+    description: 'It will move out of your active goals and stop taking contributions.',
+    confirmLabel: 'Mark achieved'
+  })) return
   await $fetch(`/api/goals/${goalId}`, { method: 'PATCH', body: { status: 'achieved' } })
   await refresh()
 }
@@ -243,7 +250,7 @@ function dueLine(goal: { status: string, targetDate: string | null, monthsRemain
                   v-if="goal.status === 'active' && goal.remainingPesewas <= 0"
                   type="button"
                   class="j-link"
-                  @click="markAchieved(goal.id)"
+                  @click="markAchieved(goal.id, goal.name)"
                 >
                   Mark achieved
                 </button>

@@ -13,7 +13,7 @@ function uniqueEmail(): string {
 }
 
 const PASSWORD = 'salo-e2e-password'
-const SIGNED_IN_ROUTES = ['/', '/transactions', '/budgets', '/goals', '/insights', '/afford', '/assistant', '/settings']
+const SIGNED_IN_ROUTES = ['/', '/transactions', '/budgets', '/goals', '/insights', '/afford', '/settings']
 
 /**
  * Navigate, then wait until Vue has hydrated.

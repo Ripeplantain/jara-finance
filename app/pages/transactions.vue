@@ -112,11 +112,18 @@ const deleteError = ref('')
 
 watch(selected, () => { deleteError.value = '' })
 
+const { confirm } = useConfirm()
+
 async function remove(row: TransactionRow) {
-  const message = row.type === 'transfer'
-    ? 'Delete this transfer? Both sides of it will be removed.'
-    : 'Delete this transaction?'
-  if (!confirm(message)) return
+  const isTransfer = row.type === 'transfer'
+  if (!await confirm({
+    title: isTransfer ? 'Delete this transfer?' : 'Delete this transaction?',
+    description: isTransfer
+      ? 'Both sides of it will be removed, and the balances of both accounts will change.'
+      : 'It will be removed from your ledger and your totals. This cannot be undone.',
+    confirmLabel: 'Delete',
+    tone: 'danger'
+  })) return
   deleting.value = true
   deleteError.value = ''
   try {

@@ -91,7 +91,7 @@ Rules:
 - Clay is for destructive actions and "over" states, always with words.
 - **Chart ramp** (`--chart-1..6`): teal, bronze, slate blue, plum, sage, rust.
   Every series also carries a label or direct end-label.
-- **Light is the default.** Dark mode is opt-in from Settings (Light / Dark /
+- **Light is the default.** Dark mode is opt-in from the theme menu in the app bar (Light / Dark /
   System, saved on the device); the operating system's preference alone does
   not switch it. Dark is a warm deep-green ink, never pure black, with a lifted
   teal and softened champagne.
@@ -143,8 +143,9 @@ integer-pesewa figures from the server and derives only presentation widths.
 
 ## Navigation
 
-v1's four destinations plus the two Jara adds: **Dashboard · Transactions ·
-Budgets · Insights · Afford · Salo**. Settings is an icon. Goals are managed on
+v1's four destinations plus Jara's Afford: **Dashboard · Transactions ·
+Budgets · Insights · Afford**. The theme menu and Settings are icons. Salo is
+not a destination; see below. Goals are managed on
 `/goals` but belong to Budgets (the nav marks Budgets active there), as in v1's
 "Budgets and goals" screen.
 
@@ -155,7 +156,7 @@ Budgets · Insights · Afford · Salo**. Settings is an icon. Goals are managed 
   (`clamp(20px, 5vw, 48px)`).
 - **Phone (under 860px):** a 56px header with the mark, the Add pill and
   Settings, and v1's flat bottom tab bar — Dashboard, Transactions, Budgets,
-  Insights — plus "More" (Afford, Salo, Settings) in a sheet. Safe-area aware,
+  Insights — plus "More" (Afford, Settings) in a sheet. Safe-area aware,
   each tab at least 60px tall; the active tab uses teal.
 
 ## Route patterns
@@ -179,8 +180,11 @@ The other pages are composed from the same parts.
   the monthly figure and "Add money"; create and contribute in sheets.
 - **Afford:** an underlined serif price field, a one-word verdict and sentence,
   `FundsMap`, then the arithmetic as a hairline sum.
-- **Salo:** one reading column; Salo's replies sit against a champagne rule, the
-  user's in a tint bubble; starter questions as serif rows; underlined composer.
+- **Salo:** a round icon fixed at the bottom-right of every signed-in page (above
+  the tab bar on phones) that opens a 400px panel; on phones the panel fills the
+  space between header and tab bar. Salo's replies sit against a champagne rule,
+  the user's in a tint bubble; starter questions as serif rows, varying by page;
+  underlined composer. The thread persists across pages (`useSalo`).
 - **Settings and auth:** serif sections with hairline rows and underlined
   fields; auth pairs the wordmark with a focused form.
 

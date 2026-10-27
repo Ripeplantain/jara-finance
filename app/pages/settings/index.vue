@@ -100,24 +100,30 @@ async function addAccount() {
  * Accounts are archived, never deleted, so historical transactions keep a
  * parent. Archiving hides it from pickers and totals without rewriting history.
  */
-async function setArchived(accountId: string, isArchived: boolean) {
+const { confirm } = useConfirm()
+
+async function setArchived(accountId: string, isArchived: boolean, name: string) {
+  // Restoring is harmless; only hiding an account is worth a second look.
+  if (isArchived && !await confirm({
+    title: `Archive ${name}?`,
+    description: 'It will disappear from pickers and totals. Its history stays, and you can restore it here any time.',
+    confirmLabel: 'Archive',
+    tone: 'danger'
+  })) return
   await $fetch(`/api/accounts/${accountId}`, { method: 'PATCH', body: { isArchived } })
   await refreshAccounts()
 }
 
 async function signOut() {
+  if (!await confirm({
+    title: 'Sign out of Jara?',
+    description: 'You will need your email and password to get back in.',
+    confirmLabel: 'Sign out'
+  })) return
   await authClient.signOut()
   await refreshMe()
   await navigateTo('/login')
 }
-
-const { mode: colourMode, set: setColourMode } = useColourMode()
-
-const COLOUR_MODES = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' }
-] as const
 </script>
 
 <template>
@@ -131,7 +137,6 @@ const COLOUR_MODES = [
     <nav class="j-toggles j-settings-nav" aria-label="Settings sections">
       <a href="#accounts" class="j-toggle">Accounts</a>
       <a href="#profile" class="j-toggle">About you</a>
-      <a href="#appearance" class="j-toggle">Appearance</a>
       <a href="#login" class="j-toggle">Login</a>
     </nav>
 
@@ -217,7 +222,7 @@ const COLOUR_MODES = [
             :pesewas="account.balancePesewas"
             :tone="account.balancePesewas < 0 ? 'expense' : 'neutral'"
           />
-          <button type="button" class="j-link" @click="setArchived(account.accountId, !account.isArchived)">
+          <button type="button" class="j-link" @click="setArchived(account.accountId, !account.isArchived, account.name)">
             {{ account.isArchived ? 'Restore' : 'Archive' }}
           </button>
         </li>
@@ -290,26 +295,6 @@ const COLOUR_MODES = [
           {{ profilePending ? 'Saving…' : 'Save changes' }}
         </button>
       </form>
-    </section>
-
-    <!-- Appearance -->
-    <section id="appearance" class="j-section j-settings-section" aria-labelledby="set-appearance">
-      <h2 id="set-appearance" class="j-h2">Appearance</h2>
-      <p class="j-small" style="margin: 6px 0 18px">
-        Light by default. Dark reads better at night. Saved on this device.
-      </p>
-      <div class="j-toggles" role="group" aria-label="Theme">
-        <button
-          v-for="option in COLOUR_MODES"
-          :key="option.value"
-          type="button"
-          class="j-toggle"
-          :aria-pressed="colourMode === option.value"
-          @click="setColourMode(option.value)"
-        >
-          {{ option.label }}
-        </button>
-      </div>
     </section>
 
     <!-- Login -->

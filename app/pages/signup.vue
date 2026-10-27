@@ -72,10 +72,9 @@ async function submit() {
 
         <div class="flex flex-col gap-2">
           <Label for="password">Password</Label>
-          <Input
+          <PasswordInput
             id="password"
             v-model="password"
-            type="password"
             autocomplete="new-password"
             required
           />

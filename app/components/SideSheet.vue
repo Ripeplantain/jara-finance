@@ -13,6 +13,9 @@ import { X } from 'lucide-vue-next'
 const props = defineProps<{ open: boolean, label: string }>()
 const emit = defineEmits<{ close: [] }>()
 
+// A confirmation opened from inside the sheet owns Escape until it closes.
+const { isOpen: confirmOpen } = useConfirm()
+
 const panel = ref<HTMLElement | null>(null)
 let returnTo: HTMLElement | null = null
 let previousOverflow = ''
@@ -21,7 +24,7 @@ const FOCUSABLE
   = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 function onWindowKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
+  if (event.key === 'Escape' && !confirmOpen.value) {
     event.preventDefault()
     emit('close')
   }
