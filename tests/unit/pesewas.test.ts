@@ -8,6 +8,7 @@ import {
   multiplyPesewas,
   parseAmountToPesewas,
   percentageOfPesewas,
+  pesewasToAmountString,
   pesewasToCedis,
   subtractPesewas,
   sumPesewas
@@ -165,5 +166,30 @@ describe('percentageOfPesewas', () => {
 describe('pesewasToCedis', () => {
   it('converts for display', () => {
     expect(pesewasToCedis(123_456)).toBe(1234.56)
+  })
+})
+
+describe('pesewasToAmountString', () => {
+  it('writes the amount a person would type, with two decimals', () => {
+    expect(pesewasToAmountString(8740)).toBe('87.40')
+    expect(pesewasToAmountString(5)).toBe('0.05')
+    expect(pesewasToAmountString(0)).toBe('0.00')
+    expect(pesewasToAmountString(1999)).toBe('19.99')
+    expect(pesewasToAmountString(100000)).toBe('1000.00')
+  })
+
+  it('keeps the sign on negative amounts', () => {
+    expect(pesewasToAmountString(-5)).toBe('-0.05')
+    expect(pesewasToAmountString(-8740)).toBe('-87.40')
+  })
+
+  it('round-trips through the parser exactly, which a float cannot promise', () => {
+    for (const pesewas of [1, 7, 99, 100, 1015, 1999, 123456789, 5_000_000_001]) {
+      expect(parseAmountToPesewas(pesewasToAmountString(pesewas))).toBe(pesewas)
+    }
+  })
+
+  it('rejects a fractional pesewa instead of formatting it', () => {
+    expect(() => pesewasToAmountString(19.99)).toThrow(MoneyError)
   })
 })

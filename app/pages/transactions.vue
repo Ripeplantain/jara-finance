@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Plus, Search, Wallet } from 'lucide-vue-next'
 import { formatPesewas } from '#shared/money/format'
-import { PERIOD_KINDS } from '#shared/period/month'
+import { PERIOD_KINDS, todayInTimezone } from '#shared/period/month'
 
 useHead({ title: 'Transactions — Jara' })
 
@@ -110,7 +110,44 @@ const heading = ref<HTMLElement | null>(null)
 const deleting = ref(false)
 const deleteError = ref('')
 
-watch(selected, () => { deleteError.value = '' })
+const editing = ref(false)
+
+watch(selected, () => {
+  deleteError.value = ''
+  editing.value = false
+})
+
+const { timezone } = useCurrentUser()
+const today = computed(() => todayInTimezone(timezone.value))
+
+/**
+ * The selected row in the shape the edit form takes, or null when it cannot be
+ * edited: a transfer is two linked rows, so it is deleted and re-recorded.
+ */
+const editable = computed(() => {
+  const row = selected.value
+  if (!row || row.type === 'transfer') return null
+  return {
+    id: row.id,
+    type: row.type,
+    accountId: row.accountId,
+    categoryId: row.categoryId,
+    amountPesewas: row.amountPesewas,
+    occurredOn: row.occurredOn,
+    merchant: row.merchant,
+    note: row.note
+  }
+})
+
+async function onEdited() {
+  editing.value = false
+  selected.value = null
+  // The change can move the row to another month, and shifts totals, budgets
+  // and balances on other pages, so re-read everything on screen.
+  await refreshNuxtData()
+  await nextTick()
+  heading.value?.focus()
+}
 
 const { confirm } = useConfirm()
 
@@ -348,25 +385,45 @@ const facts = computed(() => {
             :signed="selected.type !== 'transfer'"
           />
         </p>
-        <dl class="j-facts">
-          <div v-for="fact in facts" :key="fact[0]">
-            <dt>{{ fact[0] }}</dt>
-            <dd>{{ fact[1] }}</dd>
+        <div v-if="editing && editable" style="margin-top: 28px">
+          <TransactionForm
+            :accounts="accounts"
+            :categories="categories"
+            :today="today"
+            :entry="editable"
+            @saved="onEdited"
+          />
+          <button type="button" class="j-link" style="margin-top: 20px" @click="editing = false">
+            Cancel
+          </button>
+        </div>
+        <template v-else>
+          <dl class="j-facts">
+            <div v-for="fact in facts" :key="fact[0]">
+              <dt>{{ fact[0] }}</dt>
+              <dd>{{ fact[1] }}</dd>
+            </div>
+          </dl>
+          <p v-if="selected.type === 'transfer'" class="j-small" style="margin-top: 20px">
+            Transfers move money you already have. They are never counted as income or spending.
+            To change one, delete it and record it again.
+          </p>
+          <p v-if="deleteError" class="status-strip status-strip-error mt-5" role="alert">{{ deleteError }}</p>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 28px">
+            <button v-if="editable" type="button" class="j-pill is-quiet" @click="editing = true">
+              Edit
+            </button>
+            <button
+              type="button"
+              class="j-link"
+              style="color: var(--clay)"
+              :disabled="deleting"
+              @click="remove(selected)"
+            >
+              {{ selected.type === 'transfer' ? 'Delete this transfer' : 'Delete this transaction' }}
+            </button>
           </div>
-        </dl>
-        <p v-if="selected.type === 'transfer'" class="j-small" style="margin-top: 20px">
-          Transfers move money you already have. They are never counted as income or spending.
-        </p>
-        <p v-if="deleteError" class="status-strip status-strip-error mt-5" role="alert">{{ deleteError }}</p>
-        <button
-          type="button"
-          class="j-link"
-          style="margin-top: 28px; color: var(--clay)"
-          :disabled="deleting"
-          @click="remove(selected)"
-        >
-          {{ selected.type === 'transfer' ? 'Delete this transfer' : 'Delete this transaction' }}
-        </button>
+        </template>
       </template>
     </SideSheet>
   </div>

@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, ne, sql } from 'drizzle-orm'
 import { addPesewas, assertSafePesewas, subtractPesewas } from '#shared/money/pesewas'
-import { resolvePeriod, todayInTimezone, type Period, type PeriodKind } from '#shared/period/month'
+import { endOfMonth, resolvePeriod, startOfMonth, todayInTimezone, type Period, type PeriodKind } from '#shared/period/month'
 import type { IsoDate } from '#shared/period/dates'
 import { lastMonthsWindow } from '#shared/period/series'
 import type { DashboardRange } from '#shared/schemas/reports'
@@ -173,9 +173,10 @@ export async function querySpendingByCategory(
 export async function getDailyFlow(
   userId: string,
   timezone: string,
-  kind: PeriodKind = 'this_month'
+  kind: PeriodKind = 'this_month',
+  custom?: { start?: IsoDate, end?: IsoDate }
 ) {
-  const period = resolvePeriod({ kind }, timezone)
+  const period = resolvePeriod({ kind, ...custom }, timezone)
 
   const rows = await useDb()
     .select({
@@ -239,20 +240,32 @@ export async function querySavedInPeriod(
 export async function getDashboard(
   userId: string,
   timezone: string,
-  range: DashboardRange = 'this_month'
+  range: DashboardRange = 'this_month',
+  month?: IsoDate
 ) {
   const db = useDb()
   const today = todayInTimezone(timezone)
+  // With a month chosen, "the month" is that one whatever `range` says (the
+  // legacy `last_month` included); only `last_6_months` widens the totals.
+  const anchor = month ? startOfMonth(month) : null
+  const monthPeriod: Pick<Period, 'start' | 'end'> | null = anchor
+    ? { start: anchor, end: endOfMonth(anchor) }
+    : null
+
   const totalsPeriod: Period = range === 'last_6_months'
-    ? resolvePeriod({ kind: 'custom', ...lastMonthsWindow(today, 6) }, timezone)
-    : resolvePeriod({ kind: range }, timezone)
+    ? resolvePeriod({ kind: 'custom', ...lastMonthsWindow(anchor ?? today, 6) }, timezone)
+    : monthPeriod
+      ? resolvePeriod({ kind: 'custom', ...monthPeriod }, timezone)
+      : resolvePeriod({ kind: range }, timezone)
   const monthKind: PeriodKind = range === 'last_month' ? 'last_month' : 'this_month'
+  const monthCustom = monthPeriod ?? undefined
+  const kindForMonth: PeriodKind = monthPeriod ? 'custom' : monthKind
 
   const [liquid, totals, spending, flow, saved] = await Promise.all([
     getLiquidBalance(userId),
     queryPeriodTotals(db, userId, totalsPeriod),
-    getSpendingByCategory(userId, timezone, monthKind),
-    getDailyFlow(userId, timezone, monthKind),
+    getSpendingByCategory(userId, timezone, kindForMonth, monthCustom),
+    getDailyFlow(userId, timezone, kindForMonth, monthCustom),
     querySavedInPeriod(db, userId, totalsPeriod)
   ])
 

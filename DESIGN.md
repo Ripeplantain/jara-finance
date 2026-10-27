@@ -180,6 +180,13 @@ The other pages are composed from the same parts.
   the monthly figure and "Add money"; create and contribute in sheets.
 - **Afford:** an underlined serif price field, a one-word verdict and sentence,
   `FundsMap`, then the arithmetic as a hairline sum.
+- **Month switching:** Home and Budgets show one month at a time with a
+  `‹ October 2026 ›` switcher (`MonthSwitcher`), kept in the URL as `?month=`
+  so the plain address always means now. Home goes back freely and stops at the
+  current month; Budgets also reaches 12 months ahead, and offers to copy the
+  previous month's limits into an empty month (editor opens pre-filled; nothing
+  saves until the person does). A transaction's month is its date: Edit on the
+  detail sheet changes the date, and the form says which month it moves to.
 - **Salo:** a round icon fixed at the bottom-right of every signed-in page (above
   the tab bar on phones) that opens a 400px panel; on phones the panel fills the
   space between header and tab bar. Salo's replies sit against a champagne rule,

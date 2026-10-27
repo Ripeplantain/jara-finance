@@ -164,3 +164,18 @@ export function parseAmountToPesewas(input: string | number): number {
 export function pesewasToCedis(value: number): number {
   return assertSafePesewas(value) / 100
 }
+
+/**
+ * Pesewas to the plain amount a person would type: `8740` → `"87.40"`.
+ *
+ * Integer arithmetic on the digits, the mirror of `parseAmountToPesewas`, so
+ * prefilling an edit form and parsing it back is lossless. Use this, not
+ * `pesewasToCedis`, wherever the result goes back into a request.
+ */
+export function pesewasToAmountString(value: number): string {
+  const safe = assertSafePesewas(value)
+  const abs = Math.abs(safe)
+  const whole = Math.trunc(abs / 100)
+  const fraction = String(abs % 100).padStart(2, '0')
+  return `${safe < 0 ? '-' : ''}${whole}.${fraction}`
+}

@@ -5,19 +5,27 @@ import {
   addPesewas,
   MoneyError,
   parseAmountToPesewas,
+  pesewasToAmountString,
   pesewasToCedis,
   subtractPesewas
 } from '#shared/money/pesewas'
+import { addMonths } from '#shared/period/month'
 import { toApiError } from '~/lib/errors'
 
 useHead({ title: 'Budgets — Jara' })
+
+// Planning ahead is the point of a budget, so a year of future months is open.
+const { month, currentMonth, latestMonth } = useSelectedMonth(12)
 
 const {
   data: budget,
   refresh,
   status: budgetStatus,
   error: budgetLoadError
-} = await useFetch('/api/budgets')
+} = await useFetch('/api/budgets', { query: { month } })
+// The month before, only to offer "copy its limits" on a month with none.
+const previousMonth = computed(() => addMonths(month.value, -1))
+const { data: previousBudget } = await useFetch('/api/budgets', { query: { month: previousMonth } })
 const { data: goalData, error: goalLoadError } = await useFetch('/api/goals')
 const { data: categoryData } = await useFetch('/api/categories', {
   query: { kind: 'expense' }
@@ -42,18 +50,34 @@ const note = ref('')
 
 const expenseCategories = computed(() => categoryData.value?.categories ?? [])
 
-function startEditing(categoryId: string | null = null) {
+function startEditing(categoryId: string | null = null, from = budget.value) {
   focusId.value = categoryId ?? expenseCategories.value[0]?.id ?? null
   draft.value = {}
   error.value = ''
   limitFields.value = {}
-  for (const line of budget.value?.lines ?? []) {
-    // Rendered as cedis for editing; parsed back to pesewas by the server.
-    draft.value[line.categoryId] = String(pesewasToCedis(line.targetPesewas))
+  for (const line of from?.lines ?? []) {
+    // Rendered as the amount to type; parsed back to pesewas by the server.
+    draft.value[line.categoryId] = pesewasToAmountString(line.targetPesewas)
   }
-  note.value = budget.value?.note ?? ''
+  note.value = from?.note ?? ''
   editing.value = true
 }
+
+/**
+ * Open the editor for an empty month with last month's limits filled in. Nothing
+ * is saved until the person reviews them and presses save, so a copied plan is
+ * always a plan they chose.
+ */
+function copyPrevious() {
+  if (previousBudget.value?.exists) startEditing(null, previousBudget.value)
+}
+
+// Moving to another month abandons whatever was half-open for this one.
+watch(month, () => {
+  editing.value = false
+  openId.value = null
+  stepped.value = {}
+})
 
 async function save() {
   error.value = ''
@@ -193,6 +217,8 @@ const goals = computed(() => (goalData.value?.goals ?? []).filter(goal => goal.s
 
 <template>
   <div class="v1">
+    <MonthSwitcher v-model="month" :max="latestMonth" :current="currentMonth" style="margin-bottom: 20px" />
+
     <div v-if="budgetStatus === 'pending'" aria-label="Loading budget">
       <div class="skeleton-line h-4 w-24" />
       <div class="skeleton-line mt-4 h-10 w-72" />
@@ -219,7 +245,17 @@ const goals = computed(() => (goalData.value?.goals ?? []).filter(goal => goal.s
           title="No budget for this month yet"
           description="Set a limit on the categories you want to watch. Jara will track what you have actually spent against them, and tell you when you are moving too fast."
         >
-          <button type="button" class="v1-pill" @click="startEditing()">Set limits</button>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center">
+            <button type="button" class="v1-pill" @click="startEditing()">Set limits</button>
+            <button
+              v-if="previousBudget?.exists"
+              type="button"
+              class="v1-pill is-quiet"
+              @click="copyPrevious"
+            >
+              Copy {{ previousBudget.monthLabel }}'s limits
+            </button>
+          </div>
         </EmptyState>
 
         <template v-else>

@@ -52,9 +52,11 @@ export async function queryMonthlySeries(
   userId: string,
   timezone: string,
   count = 6,
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** Any date in the last month of the series; the current month when omitted. */
+  anchor?: IsoDate
 ): Promise<{ months: MonthlyPoint[] }> {
-  const today = todayInTimezone(timezone, now)
+  const today = anchor ?? todayInTimezone(timezone, now)
   const starts = lastMonthStarts(today, count)
   const { start, end } = lastMonthsWindow(today, count)
 

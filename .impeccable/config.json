@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "app/assets/css/v1.css"
+        ],
+        "createdAt": "2026-10-27T11:14:59.802Z",
+        "reason": "user confirmed: keep the 2px champagne rule on Salo replies, part of the chosen v1 design"
+      }
+    ]
+  }
+}
