@@ -1,0 +1,208 @@
+# CI/CD for Jara Finance.
+#
+#   check    lint + typecheck (no database)
+#   test     vitest unit + integration against a throwaway Postgres
+#   e2e      playwright smoke against `pnpm dev` and the same Postgres
+#   image    builds the prod and migrate images; pushes to GHCR on main only
+#   deploy   main only: pulls the images on the VPS, migrates, restarts the app
+#
+# Rollback: open an earlier green run on main and re-run its `deploy` job. Every
+# image is tagged with its commit SHA, so that redeploys exactly that build.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Matches docker-compose.yml, so the suites see the same database shape as dev.
+  DATABASE_URL: postgres://salo:salo@localhost:5432/salo
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # postinstall runs `nuxt prepare`, which generates the .nuxt/ that
+      # eslint.config.mjs and typecheck both import.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: salo
+          POSTGRES_PASSWORD: salo
+          POSTGRES_DB: salo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U salo -d salo"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      # `pnpm db:seed` reads .env, which CI does not have; the seed itself reads
+      # DATABASE_URL from the environment.
+      - run: pnpm exec tsx server/database/seed.ts
+      - run: pnpm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: salo
+          POSTGRES_PASSWORD: salo
+          POSTGRES_DB: salo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U salo -d salo"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BETTER_AUTH_SECRET: ci-only-not-a-real-secret-0123456789
+      BETTER_AUTH_URL: http://localhost:3100
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - run: pnpm exec tsx server/database/seed.ts
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+  image:
+    needs: [check, test, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      app: ${{ steps.names.outputs.app }}
+      migrate: ${{ steps.names.outputs.migrate }}
+    steps:
+      - uses: actions/checkout@v5
+      # GHCR names must be lowercase; the repository owner is not.
+      - id: names
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "app=$repo:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "migrate=$repo-migrate:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Pull requests build too, so a broken Dockerfile fails before merge.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          tags: ${{ steps.names.outputs.app }}
+          push: ${{ github.event_name == 'push' }}
+          cache-from: type=gha,scope=prod
+          cache-to: type=gha,scope=prod,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrate
+          tags: ${{ steps.names.outputs.migrate }}
+          push: ${{ github.event_name == 'push' }}
+          cache-from: type=gha,scope=migrate
+          cache-to: type=gha,scope=migrate,mode=max
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: image
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://finance.jarahq.com
+    # Never cancel a deploy halfway through a migration; queue the next one.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    env:
+      APP_IMAGE: ${{ needs.image.outputs.app }}
+      MIGRATE_IMAGE: ${{ needs.image.outputs.migrate }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      # The compose files travel with the commit, so the VPS never drifts from
+      # the image it runs. The server-only .env already lives in DEPLOY_PATH.
+      - name: Ship compose files
+        run: scp docker-compose.yml docker-compose.prod.yml "$TARGET:$DEPLOY_PATH/"
+      - name: Pull, migrate, restart
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | ssh "$TARGET" docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          ssh "$TARGET" bash -s <<EOF
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          trap 'docker logout ghcr.io >/dev/null' EXIT
+
+          docker pull "$APP_IMAGE"
+          docker pull "$MIGRATE_IMAGE"
+          # Retag to the names the compose file uses, so manual compose commands
+          # on the VPS keep working against whatever was deployed last.
+          docker tag "$APP_IMAGE" jara-finance:prod
+          docker tag "$MIGRATE_IMAGE" jara-finance:migrate
+          docker rmi "$APP_IMAGE" "$MIGRATE_IMAGE" >/dev/null
+
+          compose="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+          \$compose --profile tools run --rm migrate
+          \$compose up -d --wait app
+          docker image prune -f >/dev/null
+          EOF
+      - name: Health check
+        run: |
+          for i in $(seq 1 10); do
+            curl -fsS https://finance.jarahq.com/api/health && exit 0
+            sleep 3
+          done
+          exit 1
