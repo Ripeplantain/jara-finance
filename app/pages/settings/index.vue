@@ -108,7 +108,8 @@ async function setArchived(accountId: string, isArchived: boolean, name: string)
     title: `Archive ${name}?`,
     description: 'It will disappear from pickers and totals. Its history stays, and you can restore it here any time.',
     confirmLabel: 'Archive',
-    tone: 'danger'
+    tone: 'danger',
+    icon: 'archive'
   })) return
   await $fetch(`/api/accounts/${accountId}`, { method: 'PATCH', body: { isArchived } })
   await refreshAccounts()
@@ -118,7 +119,8 @@ async function signOut() {
   if (!await confirm({
     title: 'Sign out of Jara?',
     description: 'You will need your email and password to get back in.',
-    confirmLabel: 'Sign out'
+    confirmLabel: 'Sign out',
+    icon: 'logout'
   })) return
   await authClient.signOut()
   await refreshMe()

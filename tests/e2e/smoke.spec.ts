@@ -350,3 +350,46 @@ test.describe('choosing the month', () => {
     await expect(page.getByLabel('Transport', { exact: true })).toHaveValue('300.00')
   })
 })
+
+test.describe('confirmations', () => {
+  test('deleting a transaction asks first, cancel keeps it, confirm removes it', async ({ page }) => {
+    await signUp(page)
+    await completeOnboarding(page)
+    await addAccount(page, 'E2E Delete Acct', '1000')
+    await addExpense(page, '25', 'Transport', 'Delete Me')
+    const row = page.locator('.j-row', { hasText: 'Delete Me' })
+    await expect(row).toBeVisible()
+
+    await row.click()
+    await page.getByRole('button', { name: 'Delete this transaction' }).click()
+    const dialog = page.getByRole('alertdialog', { name: 'Delete this transaction?' })
+    await expect(dialog).toBeVisible()
+
+    // Cancel changes nothing.
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(row).toBeVisible()
+
+    // Confirm is what actually deletes. This is the path that once cancelled itself.
+    await page.getByRole('button', { name: 'Delete this transaction' }).click()
+    await dialog.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(row).toHaveCount(0)
+  })
+
+  test('signing out asks first, and only confirming signs out', async ({ page }) => {
+    await signUp(page)
+    await completeOnboarding(page)
+    await gotoReady(page, '/settings')
+
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    const dialog = page.getByRole('alertdialog', { name: 'Sign out of Jara?' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page).toHaveURL(/\/settings/)
+
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await expect(page).toHaveURL(/\/login/)
+  })
+})

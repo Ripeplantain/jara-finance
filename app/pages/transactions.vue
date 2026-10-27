@@ -159,7 +159,8 @@ async function remove(row: TransactionRow) {
       ? 'Both sides of it will be removed, and the balances of both accounts will change.'
       : 'It will be removed from your ledger and your totals. This cannot be undone.',
     confirmLabel: 'Delete',
-    tone: 'danger'
+    tone: 'danger',
+    icon: 'trash'
   })) return
   deleting.value = true
   deleteError.value = ''
