@@ -30,7 +30,9 @@ import {
  * 5. Persist the assistant's message in `onFinish`, with its `parts` intact.
  */
 
-const chatRequestSchema = z.object({
+const MAX_REPLY_TOKENS = 2000
+
+const chatRequestSchema =z.object({
   // `UIMessage` is the AI SDK's own shape; validating its internals here would
   // mean duplicating a type the SDK already owns and re-breaking on every
   // upgrade. The messages are replayed to the model, not trusted as commands.
@@ -67,6 +69,11 @@ export default defineEventHandler(async (event) => {
     // A tool call plus an explanation is two steps; a follow-up check makes
     // three. The cap stops a loop from running up unbounded model spend.
     stopWhen: stepCountIs(6),
+    // OpenRouter authorises each request against the model's maximum possible
+    // completion, so an unset ceiling returns 402 on a budget-limited key even
+    // when the real answer would cost a fraction of a cent. This is a ceiling,
+    // not a charge: a short answer costs only the tokens it uses.
+    maxOutputTokens: MAX_REPLY_TOKENS,
     onFinish: async ({ text }) => {
       await saveMessage(user.id, conversationId, { role: 'assistant', text })
     }
