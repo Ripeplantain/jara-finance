@@ -227,6 +227,47 @@ export async function updateGoal(userId: string, goalId: string, input: UpdateGo
 }
 
 /**
+ * Deletes a goal, but only one with nothing in it.
+ *
+ * "Nothing in it" means no contributions at all, tracked or backed. A goal with
+ * money is refused rather than cascaded: the cascade on `goalEntries` would
+ * drop a backed entry while leaving its transfer in the ledger, so the user's
+ * savings balance would keep the money with no goal left to explain it. They
+ * remove the contributions first, which is where that choice is made.
+ *
+ * The emptiness check is part of the delete statement itself, not a read
+ * before it, so a contribution landing between the two cannot be swept away.
+ */
+export async function deleteGoal(userId: string, goalId: string) {
+  return removeGoal(useDb(), userId, goalId)
+}
+
+/** `deleteGoal` with the database passed in, so it can run against a test database. */
+export async function removeGoal(db: Database, userId: string, goalId: string) {
+  const deleted = await db
+    .delete(goals)
+    .where(
+      and(
+        eq(goals.id, goalId),
+        eq(goals.userId, userId),
+        sql`not exists (select 1 from ${goalEntries} where ${goalEntries.goalId} = ${goals.id})`
+      )
+    )
+    .returning({ id: goals.id })
+
+  if (deleted.length > 0) {
+    return { deleted: true }
+  }
+
+  // Nothing was deleted: either it is not this user's goal, or it has money.
+  await assertOwnedGoal(db, userId, goalId)
+  throw createError({
+    statusCode: 409,
+    statusMessage: 'This goal has money in it. Remove its contributions before deleting it.'
+  })
+}
+
+/**
  * Records a contribution.
  *
  * A **backed** contribution delegates to `createTransfer`, which writes the

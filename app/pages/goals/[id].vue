@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ArrowLeft, ChevronRight, Pencil, Plus } from 'lucide-vue-next'
+import { ArrowLeft, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { formatPesewas } from '#shared/money/format'
+import { toApiError } from '~/lib/errors'
 
 const route = useRoute()
 const goalId = computed(() => String(route.params.id))
@@ -96,6 +97,38 @@ async function markAchieved() {
   await $fetch(`/api/goals/${g.id}`, { method: 'PATCH', body: { status: 'achieved' } })
   await refresh()
 }
+
+// A goal can only be deleted while nothing has gone into it. The server enforces
+// this; the button is hidden here so the user is never offered a dead end.
+const canDelete = computed(() => entries.value.length === 0)
+const deleting = ref(false)
+const deleteError = ref('')
+
+async function deleteGoal() {
+  const g = goal.value
+  if (!g || deleting.value) return
+  if (!await confirm({
+    title: `Delete ${g.name}?`,
+    description: 'Nothing has gone into it, so no money is affected. This cannot be undone.',
+    confirmLabel: 'Delete goal',
+    tone: 'danger',
+    icon: 'trash'
+  })) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await $fetch(`/api/goals/${g.id}`, { method: 'DELETE' })
+  } catch (caught) {
+    // 409 means a contribution arrived since this page loaded.
+    deleteError.value = toApiError(caught, 'Could not delete this goal. Try again.').message
+    await refresh()
+    return
+  } finally {
+    deleting.value = false
+  }
+  await refreshNuxtData()
+  await navigateTo('/goals')
+}
 </script>
 
 <template>
@@ -130,11 +163,18 @@ async function markAchieved() {
           <button type="button" class="j-pill is-quiet" @click="editingGoal = true">
             <Pencil :size="15" aria-hidden="true" /> Edit goal
           </button>
+          <button v-if="canDelete" type="button" class="j-pill is-quiet" :disabled="deleting" @click="deleteGoal">
+            <Trash2 :size="15" aria-hidden="true" /> Delete goal
+          </button>
           <button v-if="isActive" type="button" class="j-pill" @click="addingMoney = true">
             <Plus :size="16" aria-hidden="true" /> Add money
           </button>
         </div>
       </header>
+
+      <p v-if="deleteError" class="status-strip status-strip-error" role="alert" style="margin-top: 16px">
+        {{ deleteError }}
+      </p>
 
       <section class="j-gd-hero" aria-label="Progress">
         <div
