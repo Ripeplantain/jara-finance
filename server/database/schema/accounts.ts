@@ -17,7 +17,8 @@ export const accountType = pgEnum('account_type', [
  * always derived in `server/services/balances.ts`; storing it would mean two
  * sources of truth and a reconciliation bug waiting to happen.
  *
- * Accounts are archived, never deleted, so historical transactions keep a parent.
+ * Accounts with history are archived so every transaction keeps its parent.
+ * An unused account may be deleted; the service refuses one referenced by the ledger or a goal.
  */
 export const financialAccounts = pgTable(
   'financial_accounts',

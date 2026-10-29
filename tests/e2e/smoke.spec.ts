@@ -103,6 +103,23 @@ test.describe('auth gate', () => {
 })
 
 test.describe('a new user records their money', () => {
+  test('edits an opening balance and deletes the unused account', async ({ page }) => {
+    await signUp(page)
+    await completeOnboarding(page)
+    await addAccount(page, 'E2E Opening Balance', '100')
+
+    const account = page.getByRole('listitem').filter({ hasText: 'E2E Opening Balance' })
+    await account.getByRole('button', { name: 'Edit' }).click()
+    await account.getByLabel('Opening balance').fill('725.50')
+    await account.getByRole('button', { name: 'Save balance' }).click()
+    await expect(account.getByText('GH₵725.50', { exact: true })).toBeVisible()
+
+    await account.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('alertdialog', { name: 'Delete E2E Opening Balance?' })
+      .getByRole('button', { name: 'Delete account' }).click()
+    await expect(account).toHaveCount(0)
+  })
+
   test('signs up, onboards, and is guided to add an account first', async ({ page }) => {
     await signUp(page)
     await completeOnboarding(page)

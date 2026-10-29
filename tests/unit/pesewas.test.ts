@@ -184,7 +184,19 @@ describe('pesewasToAmountString', () => {
   })
 
   it('round-trips through the parser exactly, which a float cannot promise', () => {
-    for (const pesewas of [1, 7, 99, 100, 1015, 1999, 123456789, 5_000_000_001]) {
+    for (const pesewas of [
+      -MAX_SAFE_PESEWAS,
+      -5_000_000_001,
+      1,
+      7,
+      99,
+      100,
+      1015,
+      1999,
+      123456789,
+      5_000_000_001,
+      MAX_SAFE_PESEWAS
+    ]) {
       expect(parseAmountToPesewas(pesewasToAmountString(pesewas))).toBe(pesewas)
     }
   })

@@ -694,8 +694,12 @@
 .j-account-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 24px; padding: 16px 0; }
 .j-account-row .t { font-weight: 500; }
 .j-account-row .amt { font-variant-numeric: tabular-nums lining-nums; font-weight: 500; }
+.j-account-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+.j-account-actions .j-link { display: inline-flex; align-items: center; gap: 5px; }
+.j-account-edit { grid-column: 1 / -1; width: 100%; margin: 8px 0 16px; }
+.j-account-edit-actions { display: flex; align-items: center; gap: 18px; }
 @media (max-width: 760px) {
   .j-field-pair { grid-template-columns: 1fr; }
   .j-account-row { grid-template-columns: 1fr auto; gap: 4px 16px; }
-  .j-account-row .j-link { grid-column: 1 / -1; justify-self: start; }
+  .j-account-actions { grid-column: 1 / -1; justify-self: start; flex-wrap: wrap; justify-content: flex-start; margin-top: 8px; }
 }

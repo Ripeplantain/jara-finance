@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { LogOut, Plus } from 'lucide-vue-next'
+import { LogOut, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPES } from '#shared/schemas/accounts'
 import { INCOME_FREQUENCIES, INCOME_FREQUENCY_LABELS } from '#shared/schemas/profile'
-import { pesewasToCedis } from '#shared/money/pesewas'
+import { pesewasToAmountString } from '#shared/money/pesewas'
 import { authClient } from '~/lib/auth-client'
 import { toApiError } from '~/lib/errors'
 
@@ -25,7 +25,7 @@ const displayName = ref(profile.value?.displayName ?? '')
 const incomeFrequency = ref(profile.value?.incomeFrequency ?? 'monthly')
 const expectedIncome = ref(
   profile.value?.expectedIncomePesewas !== null && profile.value?.expectedIncomePesewas !== undefined
-    ? String(pesewasToCedis(profile.value.expectedIncomePesewas))
+    ? pesewasToAmountString(profile.value.expectedIncomePesewas)
     : ''
 )
 const profileSaved = ref(false)
@@ -67,6 +67,13 @@ const openingBalance = ref('')
 const accountError = ref('')
 const accountFields = ref<Record<string, string>>({})
 const accountPending = ref(false)
+const accountActionError = ref('')
+const editingAccountId = ref<string | null>(null)
+const editingOpeningBalance = ref('')
+const editAccountError = ref('')
+const editAccountFields = ref<Record<string, string>>({})
+const editAccountPending = ref(false)
+const deletingAccountId = ref<string | null>(null)
 
 async function addAccount() {
   accountError.value = ''
@@ -96,10 +103,41 @@ async function addAccount() {
   }
 }
 
-/**
- * Accounts are archived, never deleted, so historical transactions keep a
- * parent. Archiving hides it from pickers and totals without rewriting history.
- */
+function startEditingAccount(account: { accountId: string, openingBalancePesewas: number }) {
+  editingAccountId.value = account.accountId
+  editingOpeningBalance.value = pesewasToAmountString(account.openingBalancePesewas)
+  editAccountError.value = ''
+  editAccountFields.value = {}
+}
+
+function cancelEditingAccount() {
+  editingAccountId.value = null
+  editingOpeningBalance.value = ''
+  editAccountError.value = ''
+  editAccountFields.value = {}
+}
+
+async function saveOpeningBalance(accountId: string) {
+  editAccountError.value = ''
+  editAccountFields.value = {}
+  editAccountPending.value = true
+  try {
+    await $fetch(`/api/accounts/${accountId}`, {
+      method: 'PATCH',
+      body: { openingBalance: editingOpeningBalance.value }
+    })
+    await refreshAccounts()
+    cancelEditingAccount()
+  } catch (caught) {
+    const apiError = toApiError(caught, 'Could not update that account')
+    editAccountError.value = apiError.message
+    editAccountFields.value = apiError.fields
+  } finally {
+    editAccountPending.value = false
+  }
+}
+
+/** Accounts with history are archived, which hides them without rewriting it. */
 const { confirm } = useConfirm()
 
 async function setArchived(accountId: string, isArchived: boolean, name: string) {
@@ -111,8 +149,38 @@ async function setArchived(accountId: string, isArchived: boolean, name: string)
     tone: 'danger',
     icon: 'archive'
   })) return
-  await $fetch(`/api/accounts/${accountId}`, { method: 'PATCH', body: { isArchived } })
-  await refreshAccounts()
+  accountActionError.value = ''
+  try {
+    await $fetch(`/api/accounts/${accountId}`, { method: 'PATCH', body: { isArchived } })
+    await refreshAccounts()
+  } catch (caught) {
+    accountActionError.value = toApiError(caught, 'Could not update that account').message
+  }
+}
+
+async function removeAccount(accountId: string, name: string) {
+  if (deletingAccountId.value) return
+  if (!await confirm({
+    title: `Delete ${name}?`,
+    description: 'This account has no transactions or linked savings goals. Its opening balance and account setup will be permanently removed.',
+    confirmLabel: 'Delete account',
+    tone: 'danger',
+    icon: 'trash'
+  })) return
+
+  accountActionError.value = ''
+  deletingAccountId.value = accountId
+  try {
+    await $fetch(`/api/accounts/${accountId}`, { method: 'DELETE' })
+    if (editingAccountId.value === accountId) cancelEditingAccount()
+    await refreshAccounts()
+  } catch (caught) {
+    accountActionError.value = toApiError(caught, 'Could not delete that account').message
+    // A transaction or goal may have appeared since the list loaded.
+    await refreshAccounts()
+  } finally {
+    deletingAccountId.value = null
+  }
 }
 
 async function signOut() {
@@ -198,6 +266,10 @@ async function signOut() {
         </button>
       </form>
 
+      <p v-if="accountActionError" class="status-strip status-strip-error" role="alert" style="margin-top: 16px">
+        {{ accountActionError }}
+      </p>
+
       <div v-if="accountsStatus === 'pending'" aria-label="Loading accounts">
         <div v-for="index in 2" :key="index" class="flex items-center justify-between gap-4 py-4">
           <div class="skeleton-line h-3 w-36" />
@@ -224,9 +296,58 @@ async function signOut() {
             :pesewas="account.balancePesewas"
             :tone="account.balancePesewas < 0 ? 'expense' : 'neutral'"
           />
-          <button type="button" class="j-link" @click="setArchived(account.accountId, !account.isArchived, account.name)">
-            {{ account.isArchived ? 'Restore' : 'Archive' }}
-          </button>
+          <div class="j-account-actions">
+            <button type="button" class="j-link" @click="startEditingAccount(account)">
+              <Pencil :size="14" aria-hidden="true" /> Edit
+            </button>
+            <button type="button" class="j-link" @click="setArchived(account.accountId, !account.isArchived, account.name)">
+              {{ account.isArchived ? 'Restore' : 'Archive' }}
+            </button>
+            <button
+              v-if="account.canDelete"
+              type="button"
+              class="j-link"
+              style="color: var(--destructive)"
+              :disabled="deletingAccountId === account.accountId"
+              @click="removeAccount(account.accountId, account.name)"
+            >
+              <Trash2 :size="14" aria-hidden="true" />
+              {{ deletingAccountId === account.accountId ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+
+          <form
+            v-if="editingAccountId === account.accountId"
+            class="j-settings-form j-account-edit"
+            @submit.prevent="saveOpeningBalance(account.accountId)"
+          >
+            <label class="j-field">
+              <span>Opening balance</span>
+              <input
+                :id="`account-opening-${account.accountId}`"
+                v-model="editingOpeningBalance"
+                class="big"
+                inputmode="decimal"
+                required
+              >
+            </label>
+            <p class="j-small" style="margin: -8px 0 22px">
+              Money that was already here before the first transaction you recorded in Jara.
+              Changing it adjusts the balance Jara derives today.
+            </p>
+            <p v-if="editAccountFields.openingBalance" class="j-field-error">
+              {{ editAccountFields.openingBalance }}
+            </p>
+            <p v-if="editAccountError" class="j-field-error" role="alert">{{ editAccountError }}</p>
+            <div class="j-account-edit-actions">
+              <button type="submit" class="j-pill" :disabled="editAccountPending">
+                {{ editAccountPending ? 'Saving…' : 'Save balance' }}
+              </button>
+              <button type="button" class="j-link" :disabled="editAccountPending" @click="cancelEditingAccount">
+                Cancel
+              </button>
+            </div>
+          </form>
         </li>
       </ul>
     </section>
